@@ -78,12 +78,16 @@ func (h *ScanHandler) Start(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	discoveredHosts, _ := h.assetRepo.GetDistinctHosts(target.ID)
+	liveURLs, _ := h.assetRepo.GetLiveURLs(target.ID)
+	scanID := uuid.New().String()
+	outputFile := tool.OutputFile(scanID)
+
 	args := req.CustomArgs
 	if len(args) == 0 {
-		args = tool.DefaultArgs(target.Domain)
+		args = tool.DefaultArgs(target, discoveredHosts, liveURLs, outputFile)
 	}
 
-	scanID := uuid.New().String()
 	fullCmd := tool.BinaryName() + " " + strings.Join(args, " ")
 
 	scan := &models.Scan{
@@ -114,7 +118,7 @@ func (h *ScanHandler) Start(w http.ResponseWriter, r *http.Request) {
 	})
 
 	// Run process asynchronously
-	go h.executeScanAsync(ctx, scan, target, tool, args)
+	go h.executeScanAsync(ctx, scan, target, tool, args, discoveredHosts, liveURLs, outputFile)
 
 	JSON(w, http.StatusAccepted, scan)
 }
@@ -125,6 +129,9 @@ func (h *ScanHandler) executeScanAsync(
 	target *models.Target,
 	tool tools.Tool,
 	args []string,
+	discoveredHosts []string,
+	liveURLs []string,
+	outputFile string,
 ) {
 	defer h.dispatcher.Unregister(scan.ID)
 
@@ -145,10 +152,13 @@ func (h *ScanHandler) executeScanAsync(
 	} else {
 		// Parse output and save discovered assets
 		execCtx := tools.ExecutionContext{
-			Ctx:        ctx,
-			Scan:       scan,
-			Target:     target,
-			CustomArgs: args,
+			Ctx:             ctx,
+			Scan:            scan,
+			Target:          target,
+			DiscoveredHosts: discoveredHosts,
+			LiveURLs:        liveURLs,
+			OutputFile:      outputFile,
+			CustomArgs:      args,
 		}
 
 		assets, parseErr := tool.Run(execCtx, rawOutput)

@@ -1,9 +1,12 @@
 package tools
 
 import (
+	"bufio"
 	"encoding/json"
 	"net/url"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -43,11 +46,20 @@ func (t *KatanaTool) Category() Category {
 }
 
 func (t *KatanaTool) Description() string {
-	return "Next-generation crawling and spidering framework to discover dynamic web endpoints."
+	return "Next-generation web application crawler to discover dynamic web endpoints and API routes."
 }
 
-func (t *KatanaTool) DefaultArgs(targetDomain string) []string {
-	return []string{"-u", "https://" + targetDomain, "-jsonl", "-silent", "-depth", "2"}
+func (t *KatanaTool) OutputFile(scanID string) string {
+	return filepath.Join(os.TempDir(), "katana_"+scanID+".jsonl")
+}
+
+func (t *KatanaTool) DefaultArgs(target *models.Target, hosts []string, liveURLs []string, outputFile string) []string {
+	targetURL := "https://" + CleanDomain(target.Domain)
+	if len(liveURLs) > 0 {
+		targetURL = liveURLs[0]
+	}
+
+	return []string{"-u", targetURL, "-depth", "2", "-o", outputFile, "-jsonl"}
 }
 
 func (t *KatanaTool) IsInstalled() bool {
@@ -59,33 +71,57 @@ func (t *KatanaTool) Run(execCtx ExecutionContext, rawOutput []string) ([]models
 	var assets []models.Asset
 	now := time.Now().UTC()
 
-	for _, line := range rawOutput {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
+	// 1. Try reading the structured JSON file
+	if execCtx.OutputFile != "" {
+		if f, err := os.Open(execCtx.OutputFile); err == nil {
+			scanner := bufio.NewScanner(f)
+			for scanner.Scan() {
+				line := strings.TrimSpace(scanner.Text())
+				if line == "" {
+					continue
+				}
+
+				var item KatanaJSON
+				if err := json.Unmarshal([]byte(line), &item); err == nil {
+					endpoint := item.Endpoint
+					if endpoint == "" {
+						endpoint = item.Request.URL
+					}
+
+					if parsed, err := url.Parse(endpoint); err == nil && parsed.Hostname() != "" {
+						assets = append(assets, models.Asset{
+							ID:         uuid.New().String(),
+							TargetID:   execCtx.Target.ID,
+							ScanID:     execCtx.Scan.ID,
+							Host:       parsed.Hostname(),
+							URL:        endpoint,
+							StatusCode: item.Response.StatusCode,
+							CreatedAt:  now,
+						})
+					}
+				}
+			}
+			_ = f.Close()
+			_ = os.Remove(execCtx.OutputFile)
 		}
+	}
 
-		var item KatanaJSON
-		if err := json.Unmarshal([]byte(line), &item); err == nil && (item.Endpoint != "" || item.Request.URL != "") {
-			endpoint := item.Endpoint
-			if endpoint == "" {
-				endpoint = item.Request.URL
+	// 2. Fallback to parsing rawOutput lines
+	if len(assets) == 0 {
+		for _, line := range rawOutput {
+			line = strings.TrimSpace(line)
+			if strings.HasPrefix(line, "http://") || strings.HasPrefix(line, "https://") {
+				if parsed, err := url.Parse(line); err == nil && parsed.Hostname() != "" {
+					assets = append(assets, models.Asset{
+						ID:        uuid.New().String(),
+						TargetID:  execCtx.Target.ID,
+						ScanID:    execCtx.Scan.ID,
+						Host:      parsed.Hostname(),
+						URL:       line,
+						CreatedAt: now,
+					})
+				}
 			}
-
-			parsed, err := url.Parse(endpoint)
-			if err != nil || parsed.Hostname() == "" {
-				continue
-			}
-
-			assets = append(assets, models.Asset{
-				ID:         uuid.New().String(),
-				TargetID:   execCtx.Target.ID,
-				ScanID:     execCtx.Scan.ID,
-				Host:       parsed.Hostname(),
-				URL:        endpoint,
-				StatusCode: item.Response.StatusCode,
-				CreatedAt:  now,
-			})
 		}
 	}
 

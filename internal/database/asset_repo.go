@@ -97,3 +97,41 @@ func (r *AssetRepo) ListByTarget(targetID string, search string, limit, offset i
 
 	return assets, total, nil
 }
+
+// GetDistinctHosts returns all unique subdomains discovered for a target.
+func (r *AssetRepo) GetDistinctHosts(targetID string) ([]string, error) {
+	query := `SELECT DISTINCT host FROM assets WHERE target_id = ? AND host != '' ORDER BY host ASC`
+	rows, err := r.db.Query(query, targetID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get distinct hosts: %w", err)
+	}
+	defer rows.Close()
+
+	var hosts []string
+	for rows.Next() {
+		var h string
+		if err := rows.Scan(&h); err == nil && h != "" {
+			hosts = append(hosts, h)
+		}
+	}
+	return hosts, nil
+}
+
+// GetLiveURLs returns all active web URLs discovered for a target.
+func (r *AssetRepo) GetLiveURLs(targetID string) ([]string, error) {
+	query := `SELECT DISTINCT url FROM assets WHERE target_id = ? AND url != '' ORDER BY url ASC`
+	rows, err := r.db.Query(query, targetID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get live URLs: %w", err)
+	}
+	defer rows.Close()
+
+	var urls []string
+	for rows.Next() {
+		var u string
+		if err := rows.Scan(&u); err == nil && u != "" {
+			urls = append(urls, u)
+		}
+	}
+	return urls, nil
+}

@@ -10,10 +10,9 @@ import (
 	"github.com/google/uuid"
 )
 
-// SubfinderJSON represents a single JSON output item from subfinder -json.
+// SubfinderJSON represents a single JSON output item from subfinder.
 type SubfinderJSON struct {
-	Host   string `json:"host"`
-	Source string `json:"source"`
+	Host string `json:"host"`
 }
 
 // SubfinderTool implements the Tool interface for ProjectDiscovery's Subfinder.
@@ -37,11 +36,17 @@ func (t *SubfinderTool) Category() Category {
 }
 
 func (t *SubfinderTool) Description() string {
-	return "Fast passive subdomain enumeration tool using multiple passive online sources."
+	return "Fast passive subdomain enumeration tool querying multiple online public sources."
 }
 
-func (t *SubfinderTool) DefaultArgs(targetDomain string) []string {
-	return []string{"-d", targetDomain, "-json", "-silent"}
+func (t *SubfinderTool) OutputFile(scanID string) string {
+	return ""
+}
+
+func (t *SubfinderTool) DefaultArgs(target *models.Target, hosts []string, liveURLs []string, outputFile string) []string {
+	clean := CleanDomain(target.Domain)
+	// Output live findings line-by-line to stdout without silencing
+	return []string{"-d", clean}
 }
 
 func (t *SubfinderTool) IsInstalled() bool {
@@ -52,15 +57,17 @@ func (t *SubfinderTool) IsInstalled() bool {
 func (t *SubfinderTool) Run(execCtx ExecutionContext, rawOutput []string) ([]models.Asset, error) {
 	var assets []models.Asset
 	now := time.Now().UTC()
+	cleanRoot := CleanDomain(execCtx.Target.Domain)
 
 	for _, line := range rawOutput {
 		line = strings.TrimSpace(line)
-		if line == "" {
+		if line == "" || strings.HasPrefix(line, "[") || strings.HasPrefix(line, "_") {
 			continue
 		}
 
+		// Check if it's JSON format
 		var item SubfinderJSON
-		if err := json.Unmarshal([]byte(line), &item); err == nil && item.Host != "" {
+		if strings.HasPrefix(line, "{") && json.Unmarshal([]byte(line), &item) == nil && item.Host != "" {
 			assets = append(assets, models.Asset{
 				ID:        uuid.New().String(),
 				TargetID:  execCtx.Target.ID,
@@ -68,8 +75,11 @@ func (t *SubfinderTool) Run(execCtx ExecutionContext, rawOutput []string) ([]mod
 				Host:      item.Host,
 				CreatedAt: now,
 			})
-		} else if !strings.HasPrefix(line, "{") {
-			// Plain text fallback
+			continue
+		}
+
+		// Plain text line
+		if strings.Contains(line, cleanRoot) && !strings.Contains(line, " ") {
 			assets = append(assets, models.Asset{
 				ID:        uuid.New().String(),
 				TargetID:  execCtx.Target.ID,

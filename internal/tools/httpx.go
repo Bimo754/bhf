@@ -1,9 +1,12 @@
 package tools
 
 import (
+	"bufio"
 	"encoding/json"
 	"net/url"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -21,7 +24,6 @@ type HttpxJSON struct {
 	Title      string   `json:"title"`
 	StatusCode int      `json:"status_code"`
 	Tech       []string `json:"tech"`
-	IP         string   `json:"host"` // httpx sometimes puts IP here or in host
 }
 
 // HttpxTool implements the Tool interface for ProjectDiscovery's httpx.
@@ -48,8 +50,20 @@ func (t *HttpxTool) Description() string {
 	return "Fast multi-purpose HTTP probing toolkit for live service verification and technology detection."
 }
 
-func (t *HttpxTool) DefaultArgs(targetDomain string) []string {
-	return []string{"-u", targetDomain, "-json", "-silent", "-tech-detect", "-title", "-status-code"}
+func (t *HttpxTool) OutputFile(scanID string) string {
+	return filepath.Join(os.TempDir(), "httpx_"+scanID+".json")
+}
+
+func (t *HttpxTool) DefaultArgs(target *models.Target, hosts []string, liveURLs []string, outputFile string) []string {
+	// If subdomains were already discovered in previous steps, probe all of them!
+	if len(hosts) > 0 {
+		listFile := filepath.Join(os.TempDir(), "httpx_targets_"+outputFile+".txt")
+		_ = os.WriteFile(listFile, []byte(strings.Join(hosts, "\n")), 0644)
+		return []string{"-l", listFile, "-status-code", "-title", "-tech-detect", "-o", outputFile, "-json"}
+	}
+
+	clean := CleanDomain(target.Domain)
+	return []string{"-u", clean, "-status-code", "-title", "-tech-detect", "-o", outputFile, "-json"}
 }
 
 func (t *HttpxTool) IsInstalled() bool {
@@ -61,39 +75,67 @@ func (t *HttpxTool) Run(execCtx ExecutionContext, rawOutput []string) ([]models.
 	var assets []models.Asset
 	now := time.Now().UTC()
 
-	for _, line := range rawOutput {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
+	// 1. Try reading the structured JSON file if it exists
+	if execCtx.OutputFile != "" {
+		if f, err := os.Open(execCtx.OutputFile); err == nil {
+			scanner := bufio.NewScanner(f)
+			for scanner.Scan() {
+				line := strings.TrimSpace(scanner.Text())
+				if line == "" {
+					continue
+				}
 
-		var item HttpxJSON
-		if err := json.Unmarshal([]byte(line), &item); err == nil && item.URL != "" {
-			host := item.Input
-			if host == "" {
-				parsed, err := url.Parse(item.URL)
-				if err == nil {
-					host = parsed.Hostname()
+				var item HttpxJSON
+				if err := json.Unmarshal([]byte(line), &item); err == nil && item.URL != "" {
+					host := item.Input
+					if host == "" {
+						if parsed, err := url.Parse(item.URL); err == nil {
+							host = parsed.Hostname()
+						}
+					}
+
+					portNum := 0
+					if item.Port != "" {
+						portNum, _ = strconv.Atoi(item.Port)
+					}
+
+					assets = append(assets, models.Asset{
+						ID:           uuid.New().String(),
+						TargetID:     execCtx.Target.ID,
+						ScanID:       execCtx.Scan.ID,
+						Host:         host,
+						URL:          item.URL,
+						Port:         portNum,
+						StatusCode:   item.StatusCode,
+						Title:        item.Title,
+						Technologies: item.Tech,
+						CreatedAt:    now,
+					})
 				}
 			}
+			_ = f.Close()
+			_ = os.Remove(execCtx.OutputFile)
+		}
+	}
 
-			portNum := 0
-			if item.Port != "" {
-				portNum, _ = strconv.Atoi(item.Port)
+	// 2. Fallback to parsing rawOutput lines if file was empty
+	if len(assets) == 0 {
+		for _, line := range rawOutput {
+			line = strings.TrimSpace(line)
+			if strings.HasPrefix(line, "http://") || strings.HasPrefix(line, "https://") {
+				parts := strings.Fields(line)
+				rawURL := parts[0]
+				if parsed, err := url.Parse(rawURL); err == nil {
+					assets = append(assets, models.Asset{
+						ID:        uuid.New().String(),
+						TargetID:  execCtx.Target.ID,
+						ScanID:    execCtx.Scan.ID,
+						Host:      parsed.Hostname(),
+						URL:       rawURL,
+						CreatedAt: now,
+					})
+				}
 			}
-
-			assets = append(assets, models.Asset{
-				ID:           uuid.New().String(),
-				TargetID:     execCtx.Target.ID,
-				ScanID:       execCtx.Scan.ID,
-				Host:         host,
-				URL:          item.URL,
-				Port:         portNum,
-				StatusCode:   item.StatusCode,
-				Title:        item.Title,
-				Technologies: item.Tech,
-				CreatedAt:    now,
-			})
 		}
 	}
 

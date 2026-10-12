@@ -34,8 +34,13 @@ func (t *GauTool) Description() string {
 	return "Fetches known URLs from AlienVault, Wayback Machine, and Common Crawl archives."
 }
 
-func (t *GauTool) DefaultArgs(targetDomain string) []string {
-	return []string{"--subs", targetDomain}
+func (t *GauTool) OutputFile(scanID string) string {
+	return ""
+}
+
+func (t *GauTool) DefaultArgs(target *models.Target, hosts []string, liveURLs []string, outputFile string) []string {
+	clean := CleanDomain(target.Domain)
+	return []string{"--subs", clean}
 }
 
 func (t *GauTool) IsInstalled() bool {

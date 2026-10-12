@@ -3,10 +3,10 @@ package api
 import (
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/diamond/bhf/internal/database"
 	"github.com/diamond/bhf/internal/models"
+	"github.com/diamond/bhf/internal/tools"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -35,9 +35,9 @@ func (h *TargetHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req.Domain = strings.TrimSpace(strings.ToLower(req.Domain))
+	req.Domain = tools.CleanDomain(req.Domain)
 	if req.Domain == "" {
-		ErrorJSON(w, http.StatusBadRequest, "Domain is required")
+		ErrorJSON(w, http.StatusBadRequest, "Valid domain is required")
 		return
 	}
 

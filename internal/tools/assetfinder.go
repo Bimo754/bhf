@@ -33,8 +33,13 @@ func (t *AssetfinderTool) Description() string {
 	return "Finds related domains and subdomains using public sources and threat intelligence feeds."
 }
 
-func (t *AssetfinderTool) DefaultArgs(targetDomain string) []string {
-	return []string{"--subs-only", targetDomain}
+func (t *AssetfinderTool) OutputFile(scanID string) string {
+	return ""
+}
+
+func (t *AssetfinderTool) DefaultArgs(target *models.Target, hosts []string, liveURLs []string, outputFile string) []string {
+	clean := CleanDomain(target.Domain)
+	return []string{"--subs-only", clean}
 }
 
 func (t *AssetfinderTool) IsInstalled() bool {
@@ -45,6 +50,7 @@ func (t *AssetfinderTool) IsInstalled() bool {
 func (t *AssetfinderTool) Run(execCtx ExecutionContext, rawOutput []string) ([]models.Asset, error) {
 	var assets []models.Asset
 	now := time.Now().UTC()
+	cleanRoot := CleanDomain(execCtx.Target.Domain)
 
 	for _, line := range rawOutput {
 		line = strings.TrimSpace(line)
@@ -52,13 +58,15 @@ func (t *AssetfinderTool) Run(execCtx ExecutionContext, rawOutput []string) ([]m
 			continue
 		}
 
-		assets = append(assets, models.Asset{
-			ID:        uuid.New().String(),
-			TargetID:  execCtx.Target.ID,
-			ScanID:    execCtx.Scan.ID,
-			Host:      line,
-			CreatedAt: now,
-		})
+		if strings.Contains(line, cleanRoot) && !strings.Contains(line, " ") {
+			assets = append(assets, models.Asset{
+				ID:        uuid.New().String(),
+				TargetID:  execCtx.Target.ID,
+				ScanID:    execCtx.Scan.ID,
+				Host:      line,
+				CreatedAt: now,
+			})
+		}
 	}
 
 	return assets, nil
