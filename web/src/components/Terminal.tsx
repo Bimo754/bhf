@@ -41,6 +41,40 @@ export const Terminal: React.FC<TerminalProps> = ({
     ? logs.filter((l) => l.line.toLowerCase().includes(filter.toLowerCase()))
     : logs;
 
+  const renderHighlightedLine = (text: string, query: string) => {
+    if (!query) return text;
+    const lowerText = text.toLowerCase();
+    const lowerQuery = query.toLowerCase();
+    const parts = [];
+    let start = 0;
+    let matchIdx = lowerText.indexOf(lowerQuery, start);
+
+    if (matchIdx === -1) return text;
+
+    while (matchIdx !== -1) {
+      if (matchIdx > start) {
+        parts.push(text.substring(start, matchIdx));
+      }
+      const matched = text.substring(matchIdx, matchIdx + query.length);
+      parts.push(
+        <mark
+          key={start}
+          className="bg-amber-300 text-black px-0.5 rounded-sm font-semibold select-text"
+        >
+          {matched}
+        </mark>
+      );
+      start = matchIdx + query.length;
+      matchIdx = lowerText.indexOf(lowerQuery, start);
+    }
+
+    if (start < text.length) {
+      parts.push(text.substring(start));
+    }
+
+    return parts;
+  };
+
   return (
     <div className="flex flex-col h-full bg-[#010409] rounded-md border border-[#30363d] overflow-hidden">
       {/* Title Bar */}
@@ -58,12 +92,18 @@ export const Terminal: React.FC<TerminalProps> = ({
 
         {/* Controls */}
         <div className="flex items-center space-x-2">
+          {filter && (
+            <span className="text-[10px] text-zinc-500 font-mono hidden sm:inline">
+              {filteredLogs.length} matches
+            </span>
+          )}
+
           <input
             type="text"
-            placeholder="Filter logs..."
+            placeholder="Search / filter logs..."
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="bg-[#0d1117] border border-[#30363d] rounded px-2 py-0.5 text-zinc-200 text-xs focus:outline-none focus:border-zinc-500 w-36 font-mono"
+            className="bg-[#0d1117] border border-[#30363d] rounded px-2 py-0.5 text-zinc-200 text-xs focus:outline-none focus:border-zinc-500 w-44 font-mono"
           />
 
           <button
@@ -103,14 +143,14 @@ export const Terminal: React.FC<TerminalProps> = ({
         </div>
       </div>
 
-      {/* Terminal Lines Container (Strictly isolated scrolling) */}
+      {/* Terminal Lines Container */}
       <div
         ref={terminalBodyRef}
-        className="flex-1 p-3 font-mono text-[11px] leading-relaxed overflow-y-auto space-y-0.5 selection:bg-zinc-800"
+        className="flex-1 p-3 font-mono text-[11px] leading-relaxed overflow-y-auto space-y-0.5"
       >
         {filteredLogs.length === 0 ? (
           <div className="flex items-center justify-center h-full text-zinc-600 font-mono text-xs select-none">
-            No execution output to display.
+            {filter ? `No log lines matching "${filter}"` : 'No execution output to display.'}
           </div>
         ) : (
           filteredLogs.map((log, index) => (
@@ -136,7 +176,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                     : 'text-zinc-200'
                 }`}
               >
-                {log.line}
+                {renderHighlightedLine(log.line, filter)}
               </span>
             </div>
           ))

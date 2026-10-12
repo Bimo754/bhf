@@ -12,6 +12,7 @@ import { ScanWebSocket } from './services/wsService';
 import { Navbar } from './components/Navbar';
 import { CreateTargetModal } from './components/CreateTargetModal';
 import { DeleteTargetModal } from './components/DeleteTargetModal';
+import { ToastContainer, ToastMessage } from './components/Toast';
 import { ToolsView } from './views/ToolsView';
 import { AssetsView } from './views/AssetsView';
 import { TerminalView } from './views/TerminalView';
@@ -24,6 +25,7 @@ export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'tools' | 'assets' | 'terminal'>('tools');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   // Asset State
   const [assetsData, setAssetsData] = useState<PaginatedAssets>({
@@ -33,12 +35,22 @@ export const App: React.FC = () => {
     limit: 50,
   });
   const [assetSearch, setAssetSearch] = useState('');
+  const [isAssetsLoading, setIsAssetsLoading] = useState(false);
 
   // Active Terminal & Streaming State
   const [activeScanId, setActiveScanId] = useState<string | null>(null);
   const [activeScanLogs, setActiveScanLogs] = useState<LogEntry[]>([]);
   const [runningScanId, setRunningScanId] = useState<string | null>(null);
   const wsRef = useRef<ScanWebSocket | null>(null);
+
+  const addToast = (toast: Omit<ToastMessage, 'id'>) => {
+    const id = Math.random().toString(36).substring(2, 9);
+    setToasts((prev) => [...prev, { ...toast, id }]);
+  };
+
+  const handleDismissToast = (id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
 
   // Initial load
   useEffect(() => {
@@ -68,11 +80,21 @@ export const App: React.FC = () => {
 
   const loadAssets = async (page: number, search: string) => {
     if (!activeTarget) return;
+    setIsAssetsLoading(true);
     try {
       const data = await assetService.listByTarget(activeTarget.id, page, 50, search);
       setAssetsData(data);
     } catch (err) {
       console.error('Failed to load assets', err);
+    } finally {
+      setIsAssetsLoading(false);
+    }
+  };
+
+  const handleSelectTab = (tab: 'tools' | 'assets' | 'terminal') => {
+    setActiveTab(tab);
+    if (tab === 'assets') {
+      loadAssets(1, assetSearch);
     }
   };
 
@@ -108,10 +130,34 @@ export const App: React.FC = () => {
         } else if (msg.type === 'complete' || msg.type === 'status') {
           if (activeTarget) {
             scanService.listByTarget(activeTarget.id).then(setScans);
-            loadAssets(assetsData.page, assetSearch);
+            loadAssets(1, assetSearch);
           }
           if (msg.status !== 'RUNNING') {
             setRunningScanId(null);
+          }
+          if (msg.type === 'complete') {
+            const scan = scans.find((s) => s.id === msg.scan_id);
+            const toolTitle = scan ? scan.tool_name : 'Task';
+
+            if (msg.status === 'COMPLETED') {
+              addToast({
+                type: 'success',
+                title: `${toolTitle} Completed`,
+                message: 'Findings saved. Explore updated inventory in Discovered Assets.',
+              });
+            } else if (msg.status === 'FAILED') {
+              addToast({
+                type: 'error',
+                title: `${toolTitle} Failed`,
+                message: msg.line || 'Check console logs for details.',
+              });
+            } else if (msg.status === 'STOPPED') {
+              addToast({
+                type: 'info',
+                title: `${toolTitle} Stopped`,
+                message: 'Process stopped by user. Existing findings preserved.',
+              });
+            }
           }
         }
       }
@@ -123,7 +169,7 @@ export const App: React.FC = () => {
     return () => {
       ws.disconnect();
     };
-  }, [activeScanId]);
+  }, [activeScanId, scans, activeTarget]);
 
   const handleExecuteTool = async (toolName: string, customArgs: string[]) => {
     if (!activeTarget) return;
@@ -142,14 +188,18 @@ export const App: React.FC = () => {
         {
           scan_id: scan.id,
           stream: 'system',
-          line: `[BHF] Initiating ${toolName} execution against ${activeTarget.domain}`,
+          line: `[BHF] Launching ${toolName} against ${activeTarget.domain}`,
           timestamp: new Date().toISOString(),
         },
       ]);
-      // Navigate cleanly to console so user can see it running without jumping
+      // Switch cleanly to console
       setActiveTab('terminal');
     } catch (err: any) {
-      alert(`Failed to launch tool: ${err.message}`);
+      addToast({
+        type: 'error',
+        title: 'Launch Failed',
+        message: err.message,
+      });
     }
   };
 
@@ -158,7 +208,11 @@ export const App: React.FC = () => {
       await scanService.stop(scanId);
       setRunningScanId(null);
     } catch (err: any) {
-      alert(`Failed to stop scan: ${err.message}`);
+      addToast({
+        type: 'error',
+        title: 'Stop Failed',
+        message: err.message,
+      });
     }
   };
 
@@ -175,6 +229,11 @@ export const App: React.FC = () => {
     setScans([]);
     setAssetsData({ assets: [], total: 0, page: 1, limit: 50 });
     setActiveScanId(null);
+    addToast({
+      type: 'info',
+      title: 'Target Deleted',
+      message: `Removed ${target.domain} and its associated asset records.`,
+    });
   };
 
   return (
@@ -187,7 +246,7 @@ export const App: React.FC = () => {
         onSelectTarget={setActiveTarget}
         onOpenCreateTarget={() => setIsCreateModalOpen(true)}
         onOpenDeleteTarget={() => setIsDeleteModalOpen(true)}
-        onSelectTab={setActiveTab}
+        onSelectTab={handleSelectTab}
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6">
@@ -214,6 +273,8 @@ export const App: React.FC = () => {
               setAssetSearch(q);
               loadAssets(1, q);
             }}
+            onRefresh={() => loadAssets(assetsData.page, assetSearch)}
+            isLoading={isAssetsLoading}
           />
         )}
 
@@ -236,6 +297,11 @@ export const App: React.FC = () => {
         onCreated={(target) => {
           setTargets((prev) => [target, ...prev]);
           setActiveTarget(target);
+          addToast({
+            type: 'success',
+            title: 'Scope Registered',
+            message: `Target ${target.domain} created and active.`,
+          });
         }}
       />
 
@@ -245,6 +311,8 @@ export const App: React.FC = () => {
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirmDelete={handleDeleteTarget}
       />
+
+      <ToastContainer toasts={toasts} onDismiss={handleDismissToast} />
     </div>
   );
 };

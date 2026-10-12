@@ -62,6 +62,7 @@ func (t *KatanaTool) DefaultArgs(target *models.Target, hosts []string, liveURLs
 	return []string{
 		"-u", targetURL,
 		"-depth", "2",
+		"-fs", "dn",
 		"-timeout", "10",
 		"-c", "10",
 		"-rl", "100",
@@ -91,6 +92,9 @@ func (t *KatanaTool) Run(execCtx ExecutionContext, rawOutput []string) ([]models
 		seen[raw] = true
 
 		if parsed, err := url.Parse(raw); err == nil && parsed.Hostname() != "" {
+			if !IsInScope(parsed.Hostname(), execCtx.Target.Domain) {
+				return
+			}
 			assets = append(assets, models.Asset{
 				ID:         uuid.New().String(),
 				TargetID:   execCtx.Target.ID,

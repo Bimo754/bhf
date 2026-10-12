@@ -165,7 +165,9 @@ func (h *ScanHandler) executeScanAsync(
 	assets, parseErr := tool.Run(execCtx, rawOutput)
 	if parseErr == nil && len(assets) > 0 {
 		for i := range assets {
-			_ = h.assetRepo.Upsert(&assets[i])
+			if tools.IsInScope(assets[i].Host, target.Domain) {
+				_ = h.assetRepo.Upsert(&assets[i])
+			}
 		}
 	}
 

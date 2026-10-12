@@ -59,7 +59,7 @@ func (t *GauTool) Run(execCtx ExecutionContext, rawOutput []string) ([]models.As
 		}
 
 		parsed, err := url.Parse(line)
-		if err != nil || parsed.Hostname() == "" {
+		if err != nil || parsed.Hostname() == "" || !IsInScope(parsed.Hostname(), execCtx.Target.Domain) {
 			continue
 		}
 

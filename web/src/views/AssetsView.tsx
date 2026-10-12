@@ -10,6 +10,8 @@ interface AssetsViewProps {
   searchQuery: string;
   onPageChange: (page: number) => void;
   onSearchChange: (query: string) => void;
+  onRefresh: () => void;
+  isLoading?: boolean;
 }
 
 export const AssetsView: React.FC<AssetsViewProps> = ({
@@ -19,6 +21,8 @@ export const AssetsView: React.FC<AssetsViewProps> = ({
   searchQuery,
   onPageChange,
   onSearchChange,
+  onRefresh,
+  isLoading = false,
 }) => {
   if (!activeTarget) {
     return (
@@ -31,21 +35,14 @@ export const AssetsView: React.FC<AssetsViewProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between border-b border-[#30363d] pb-3">
-        <div>
-          <h2 className="text-base font-semibold text-zinc-100 font-mono">Discovered Assets Inventory</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            Scope: <span className="font-mono text-zinc-200 font-semibold">{activeTarget.domain}</span>
-          </p>
-        </div>
-      </div>
-
       <AssetTable
         data={assetsData}
         currentPage={currentPage}
         searchQuery={searchQuery}
         onPageChange={onPageChange}
         onSearchChange={onSearchChange}
+        onRefresh={onRefresh}
+        isLoading={isLoading}
       />
     </div>
   );

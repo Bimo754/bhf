@@ -1,7 +1,7 @@
 import React from 'react';
-import { Trash2 } from 'lucide-react';
 import { Target } from '../types/target';
 import { Button } from './Button';
+import { ScopeDropdown } from './ScopeDropdown';
 
 interface NavbarProps {
   targets: Target[];
@@ -79,40 +79,16 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Target Scope Switcher */}
         <div className="flex items-center space-x-2">
-          <div className="flex items-center bg-[#0d1117] border border-[#30363d] rounded px-2.5 py-1 text-xs">
-            <span className="text-zinc-500 font-mono mr-2 text-[11px]">Scope:</span>
-            <select
-              value={activeTarget?.id || ''}
-              onChange={(e) => {
-                const found = targets.find((t) => t.id === e.target.value);
-                if (found) onSelectTarget(found);
-              }}
-              className="bg-transparent text-zinc-200 font-mono text-xs focus:outline-none cursor-pointer pr-1"
-            >
-              {targets.length === 0 ? (
-                <option value="">No Targets Defined</option>
-              ) : (
-                targets.map((t) => (
-                  <option key={t.id} value={t.id} className="bg-[#161b22] text-zinc-200">
-                    {t.domain}
-                  </option>
-                ))
-              )}
-            </select>
-            {activeTarget && onOpenDeleteTarget && (
-              <button
-                type="button"
-                onClick={onOpenDeleteTarget}
-                title={`Delete ${activeTarget.domain}`}
-                className="p-1 rounded text-zinc-500 hover:text-red-400 hover:bg-[#21262d] transition-colors ml-1"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
+          <ScopeDropdown
+            targets={targets}
+            activeTarget={activeTarget}
+            onSelectTarget={onSelectTarget}
+            onOpenCreateTarget={onOpenCreateTarget}
+            onOpenDeleteTarget={onOpenDeleteTarget}
+          />
 
-          <Button variant="secondary" size="sm" onClick={onOpenCreateTarget}>
-            + Add Target
+          <Button variant="secondary" size="sm" onClick={onOpenCreateTarget} className="text-xs font-mono">
+            + Scope
           </Button>
         </div>
       </div>

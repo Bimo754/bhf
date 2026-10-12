@@ -64,10 +64,10 @@ func (r *AssetRepo) ListByTarget(targetID string, search string, limit, offset i
 	}
 
 	// Count total matching
-	countQuery := `SELECT COUNT(*) FROM assets WHERE target_id = ? AND (host LIKE ? OR title LIKE ? OR ip LIKE ?)`
+	countQuery := `SELECT COUNT(*) FROM assets WHERE target_id = ? AND (host LIKE ? OR title LIKE ? OR ip LIKE ? OR url LIKE ?)`
 	searchPattern := "%" + search + "%"
 	var total int
-	err := r.db.QueryRow(countQuery, targetID, searchPattern, searchPattern, searchPattern).Scan(&total)
+	err := r.db.QueryRow(countQuery, targetID, searchPattern, searchPattern, searchPattern, searchPattern).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to count assets: %w", err)
 	}
@@ -75,10 +75,10 @@ func (r *AssetRepo) ListByTarget(targetID string, search string, limit, offset i
 	// Fetch paginated
 	query := `SELECT id, target_id, scan_id, host, url, ip, port, status_code, title, technologies, created_at
 		FROM assets 
-		WHERE target_id = ? AND (host LIKE ? OR title LIKE ? OR ip LIKE ?)
+		WHERE target_id = ? AND (host LIKE ? OR title LIKE ? OR ip LIKE ? OR url LIKE ?)
 		ORDER BY created_at DESC LIMIT ? OFFSET ?`
 
-	rows, err := r.db.Query(query, targetID, searchPattern, searchPattern, searchPattern, limit, offset)
+	rows, err := r.db.Query(query, targetID, searchPattern, searchPattern, searchPattern, searchPattern, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list assets: %w", err)
 	}

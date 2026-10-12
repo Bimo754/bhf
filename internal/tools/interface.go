@@ -30,6 +30,19 @@ func CleanDomain(d string) string {
 	return d
 }
 
+// IsInScope checks whether a discovered hostname belongs to the target domain or its subdomains.
+func IsInScope(host string, targetDomain string) bool {
+	host = strings.TrimSpace(strings.ToLower(host))
+	if idx := strings.Index(host, ":"); idx != -1 {
+		host = host[:idx]
+	}
+	root := CleanDomain(targetDomain)
+	if host == "" || root == "" {
+		return false
+	}
+	return host == root || strings.HasSuffix(host, "."+root)
+}
+
 // ExecutionContext passes target, discovered pipeline assets, and scan context to the tool execution.
 type ExecutionContext struct {
 	Ctx             context.Context

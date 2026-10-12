@@ -8,6 +8,16 @@
     background-color: #0d1117;
     color: #e6edf3;
   }
+
+  ::selection {
+    background-color: #1f6feb !important;
+    color: #ffffff !important;
+  }
+
+  ::-moz-selection {
+    background-color: #1f6feb !important;
+    color: #ffffff !important;
+  }
 }
 
 /* Crisp developer scrollbar */
