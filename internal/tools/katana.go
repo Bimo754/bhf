@@ -59,7 +59,17 @@ func (t *KatanaTool) DefaultArgs(target *models.Target, hosts []string, liveURLs
 		targetURL = liveURLs[0]
 	}
 
-	return []string{"-u", targetURL, "-depth", "2", "-o", outputFile, "-jsonl"}
+	return []string{
+		"-u", targetURL,
+		"-depth", "2",
+		"-ct", "3m",
+		"-timeout", "7",
+		"-c", "10",
+		"-rl", "50",
+		"-iqp",
+		"-o", outputFile,
+		"-jsonl",
+	}
 }
 
 func (t *KatanaTool) IsInstalled() bool {

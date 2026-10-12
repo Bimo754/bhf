@@ -149,23 +149,23 @@ func (h *ScanHandler) executeScanAsync(
 			finalStatus = models.StatusFailed
 			errMsg = runErr.Error()
 		}
-	} else {
-		// Parse output and save discovered assets
-		execCtx := tools.ExecutionContext{
-			Ctx:             ctx,
-			Scan:            scan,
-			Target:          target,
-			DiscoveredHosts: discoveredHosts,
-			LiveURLs:        liveURLs,
-			OutputFile:      outputFile,
-			CustomArgs:      args,
-		}
+	}
 
-		assets, parseErr := tool.Run(execCtx, rawOutput)
-		if parseErr == nil {
-			for i := range assets {
-				_ = h.assetRepo.Upsert(&assets[i])
-			}
+	// Always parse findings even if stopped by user, to preserve all assets discovered so far
+	execCtx := tools.ExecutionContext{
+		Ctx:             ctx,
+		Scan:            scan,
+		Target:          target,
+		DiscoveredHosts: discoveredHosts,
+		LiveURLs:        liveURLs,
+		OutputFile:      outputFile,
+		CustomArgs:      args,
+	}
+
+	assets, parseErr := tool.Run(execCtx, rawOutput)
+	if parseErr == nil && len(assets) > 0 {
+		for i := range assets {
+			_ = h.assetRepo.Upsert(&assets[i])
 		}
 	}
 
