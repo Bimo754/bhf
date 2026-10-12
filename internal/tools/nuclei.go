@@ -63,9 +63,10 @@ func (t *NucleiTool) DefaultArgs(target *models.Target, hosts []string, liveURLs
 	}
 
 	if len(targets) > 0 {
-		listFile := filepath.Join(os.TempDir(), "nuclei_targets_"+outputFile+".txt")
-		_ = os.WriteFile(listFile, []byte(strings.Join(targets, "\n")), 0644)
-		return []string{"-l", listFile, "-s", "info,low,medium,high,critical", "-o", outputFile, "-jsonl"}
+		listFile := outputFile + ".targets.txt"
+		if err := os.WriteFile(listFile, []byte(strings.Join(targets, "\n")), 0644); err == nil {
+			return []string{"-l", listFile, "-s", "info,low,medium,high,critical", "-o", outputFile, "-jsonl"}
+		}
 	}
 
 	clean := CleanDomain(target.Domain)
@@ -113,6 +114,7 @@ func (t *NucleiTool) Run(execCtx ExecutionContext, rawOutput []string) ([]models
 			}
 			_ = f.Close()
 			_ = os.Remove(execCtx.OutputFile)
+			_ = os.Remove(execCtx.OutputFile + ".targets.txt")
 		}
 	}
 

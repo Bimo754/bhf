@@ -55,11 +55,11 @@ func (t *HttpxTool) OutputFile(scanID string) string {
 }
 
 func (t *HttpxTool) DefaultArgs(target *models.Target, hosts []string, liveURLs []string, outputFile string) []string {
-	// If subdomains were already discovered in previous steps, probe all of them!
 	if len(hosts) > 0 {
-		listFile := filepath.Join(os.TempDir(), "httpx_targets_"+outputFile+".txt")
-		_ = os.WriteFile(listFile, []byte(strings.Join(hosts, "\n")), 0644)
-		return []string{"-l", listFile, "-status-code", "-title", "-tech-detect", "-o", outputFile, "-json"}
+		listFile := outputFile + ".targets.txt"
+		if err := os.WriteFile(listFile, []byte(strings.Join(hosts, "\n")), 0644); err == nil {
+			return []string{"-l", listFile, "-status-code", "-title", "-tech-detect", "-o", outputFile, "-json"}
+		}
 	}
 
 	clean := CleanDomain(target.Domain)
@@ -115,6 +115,7 @@ func (t *HttpxTool) Run(execCtx ExecutionContext, rawOutput []string) ([]models.
 			}
 			_ = f.Close()
 			_ = os.Remove(execCtx.OutputFile)
+			_ = os.Remove(execCtx.OutputFile + ".targets.txt")
 		}
 	}
 
