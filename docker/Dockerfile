@@ -3,7 +3,7 @@
 # ==============================================================================
 FROM node:22-alpine AS frontend-builder
 WORKDIR /web
-COPY web/package.json ./
+COPY web/package.json web/package-lock.json* ./
 RUN npm install
 COPY web/ ./
 RUN npm run build
@@ -11,11 +11,12 @@ RUN npm run build
 # ==============================================================================
 # Stage 2: Install Pre-compiled Security Tools
 # ==============================================================================
-FROM golang:1.24-alpine AS tools-builder
+FROM golang:alpine AS tools-builder
 RUN apk add --no-cache git
 
 ENV CGO_ENABLED=0
 ENV GO111MODULE=on
+ENV GOTOOLCHAIN=auto
 
 # Install Go-based reconnaissance tools as static binaries
 RUN go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest && \
@@ -27,8 +28,11 @@ RUN go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest 
 # ==============================================================================
 # Stage 3: Build the Unified BHF Go Server Binary
 # ==============================================================================
-FROM golang:1.24-alpine AS backend-builder
+FROM golang:alpine AS backend-builder
 WORKDIR /app
+
+ENV CGO_ENABLED=0
+ENV GOTOOLCHAIN=auto
 
 COPY go.mod go.sum ./
 RUN go mod download
