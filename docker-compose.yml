@@ -1,0 +1,16 @@
+services:
+  bhf:
+    container_name: bhf-framework
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    environment:
+      - BHF_PORT=8080
+      - BHF_HOST=0.0.0.0
+      - BHF_DATA_DIR=/app/data
+      - BHF_LOG_LEVEL=INFO
