@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Play, Sliders } from 'lucide-react';
+import { X, Play } from 'lucide-react';
 import { Button } from './Button';
 import { ToolInfo } from '../types/tool';
 import { Target } from '../types/target';
@@ -30,53 +30,50 @@ export const RunConfigModal: React.FC<RunConfigModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className="bg-dark-800 border border-dark-600 rounded-xl max-w-lg w-full p-6 shadow-2xl relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
+      <div className="bg-[#161b22] border border-[#30363d] rounded-md max-w-lg w-full p-5 relative shadow-xl">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-100"
+          className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-100"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
 
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="p-2.5 rounded-lg bg-cyber-cyan/10 text-cyber-cyan border border-cyber-cyan/30">
-            <Sliders className="w-6 h-6" />
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-gray-100">Execute {tool.name}</h3>
-            <p className="text-xs text-gray-400">Target: <span className="font-mono text-cyber-cyan">{target.domain}</span></p>
-          </div>
+        <div className="mb-4">
+          <h3 className="text-sm font-bold text-zinc-100 font-mono">Execute {tool.name}</h3>
+          <p className="text-xs text-zinc-400 mt-0.5">
+            Target: <span className="font-mono text-zinc-200 font-semibold">{target.domain}</span>
+          </p>
         </div>
 
-        <div className="space-y-4">
-          <div className="p-3 bg-dark-900 border border-dark-700 rounded-lg text-xs">
-            <span className="text-gray-400 block mb-1 font-semibold uppercase tracking-wider">Description</span>
-            <p className="text-gray-200">{tool.description}</p>
+        <div className="space-y-3">
+          <div className="p-2.5 bg-[#0d1117] border border-[#21262d] rounded text-xs text-zinc-400 font-mono">
+            <span className="text-zinc-500 block text-[10px] uppercase font-semibold mb-1">Methodology Objective</span>
+            {tool.description}
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-300 mb-1">
-              Custom CLI Flags & Arguments (Optional Override)
+            <label className="block text-xs font-mono text-zinc-300 mb-1">
+              Custom CLI Arguments (Optional Override)
             </label>
             <input
               type="text"
-              placeholder="Leave blank for optimized default arguments"
+              placeholder="Leave blank to use pre-tuned defaults"
               value={customArgs}
               onChange={(e) => setCustomArgs(e.target.value)}
-              className="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-cyber-cyan font-mono"
+              className="w-full bg-[#0d1117] border border-[#30363d] rounded px-3 py-1.5 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 font-mono"
             />
-            <p className="text-[11px] text-gray-500 mt-1">
-              If left blank, BHF uses tuned flags for high-speed, non-intrusive enumeration.
+            <p className="text-[11px] text-zinc-500 mt-1">
+              By default, tuned high-speed non-disruptive flags are supplied automatically.
             </p>
           </div>
 
-          <div className="flex justify-end space-x-3 pt-3">
+          <div className="flex justify-end space-x-2 pt-2 border-t border-[#21262d]">
             <Button variant="ghost" onClick={onClose}>
               Cancel
             </Button>
             <Button variant="primary" onClick={handleRun}>
-              <Play className="w-4 h-4 mr-1.5" />
+              <Play className="w-3.5 h-3.5 mr-1 fill-current" />
               Launch Tool
             </Button>
           </div>

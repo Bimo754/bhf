@@ -16,23 +16,23 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const base =
-    'inline-flex items-center justify-center font-medium transition-all duration-150 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-dark-900 disabled:opacity-50 disabled:cursor-not-allowed';
+    'inline-flex items-center justify-center font-medium transition-colors rounded-md focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed';
 
   const sizes = {
-    sm: 'px-2.5 py-1.5 text-xs',
-    md: 'px-3.5 py-2 text-sm',
-    lg: 'px-5 py-2.5 text-base',
+    sm: 'px-2.5 py-1 text-xs',
+    md: 'px-3 py-1.5 text-xs',
+    lg: 'px-4 py-2 text-sm',
   };
 
   const variants = {
     primary:
-      'bg-cyber-cyan text-dark-900 font-semibold hover:bg-cyan-400 focus:ring-cyber-cyan shadow-sm shadow-cyber-cyan/20',
+      'bg-[#238636] hover:bg-[#2ea043] text-white border border-[#2ea043]/80 font-medium',
     secondary:
-      'bg-dark-700 text-gray-200 hover:bg-dark-600 border border-dark-600 focus:ring-gray-500',
+      'bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] border border-[#30363d]',
     danger:
-      'bg-cyber-rose/10 text-cyber-rose border border-cyber-rose/30 hover:bg-cyber-rose/20 focus:ring-cyber-rose',
+      'bg-red-950/70 hover:bg-red-900/80 text-red-300 border border-red-800/80',
     ghost:
-      'text-gray-400 hover:text-gray-100 hover:bg-dark-800 focus:ring-gray-700',
+      'text-zinc-400 hover:text-zinc-100 hover:bg-[#21262d]',
   };
 
   return (
@@ -42,8 +42,8 @@ export const Button: React.FC<ButtonProps> = ({
       {...props}
     >
       {isLoading ? (
-        <span className="flex items-center space-x-2">
-          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+        <span className="flex items-center space-x-1.5">
+          <svg className="animate-spin h-3.5 w-3.5 text-current" viewBox="0 0 24 24">
             <circle
               className="opacity-25"
               cx="12"
@@ -59,7 +59,7 @@ export const Button: React.FC<ButtonProps> = ({
               d="M4 12a8 8 0 018-8v8H4z"
             />
           </svg>
-          <span>Processing...</span>
+          <span>Running...</span>
         </span>
       ) : (
         children

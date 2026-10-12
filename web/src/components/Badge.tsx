@@ -9,22 +9,22 @@ export const Badge: React.FC<BadgeProps> = ({ status }) => {
   const getStyle = () => {
     switch (status.toUpperCase()) {
       case 'RUNNING':
-        return 'bg-cyber-cyan/10 text-cyber-cyan border-cyber-cyan/30 animate-pulse';
+        return 'bg-blue-950/70 text-blue-400 border-blue-800/80';
       case 'COMPLETED':
-        return 'bg-cyber-green/10 text-cyber-green border-cyber-green/30';
+        return 'bg-emerald-950/70 text-emerald-400 border-emerald-800/80';
       case 'FAILED':
-        return 'bg-cyber-rose/10 text-cyber-rose border-cyber-rose/30';
+        return 'bg-red-950/70 text-red-400 border-red-800/80';
       case 'STOPPED':
-        return 'bg-cyber-amber/10 text-cyber-amber border-cyber-amber/30';
+        return 'bg-amber-950/70 text-amber-400 border-amber-800/80';
       case 'PENDING':
       default:
-        return 'bg-gray-800 text-gray-400 border-gray-700';
+        return 'bg-zinc-800 text-zinc-400 border-zinc-700';
     }
   };
 
   return (
     <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-medium border ${getStyle()}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-medium border ${getStyle()}`}
     >
       {status}
     </span>

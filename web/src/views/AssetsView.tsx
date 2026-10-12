@@ -22,20 +22,20 @@ export const AssetsView: React.FC<AssetsViewProps> = ({
 }) => {
   if (!activeTarget) {
     return (
-      <div className="p-8 text-center bg-dark-800 rounded-xl border border-dark-600/60 max-w-lg mx-auto mt-12">
-        <h3 className="text-base font-bold text-gray-200">No Target Scope Selected</h3>
-        <p className="text-xs text-gray-400 mt-1">Please select or create a target to view discovered assets.</p>
+      <div className="p-8 text-center bg-[#161b22] rounded-md border border-[#30363d] max-w-lg mx-auto mt-12">
+        <h3 className="text-sm font-semibold text-zinc-200">No Target Selected</h3>
+        <p className="text-xs text-zinc-400 mt-1">Please select a target scope to view assets.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between border-b border-[#30363d] pb-3">
         <div>
-          <h2 className="text-lg font-bold text-gray-100 font-mono">Discovered Attack Surface</h2>
-          <p className="text-xs text-gray-400">
-            Scope target: <span className="text-cyber-cyan font-mono font-medium">{activeTarget.domain}</span>
+          <h2 className="text-base font-semibold text-zinc-100 font-mono">Discovered Assets Inventory</h2>
+          <p className="text-xs text-zinc-400 mt-0.5">
+            Scope: <span className="font-mono text-zinc-200 font-semibold">{activeTarget.domain}</span>
           </p>
         </div>
       </div>

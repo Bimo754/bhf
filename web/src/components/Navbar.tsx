@@ -1,5 +1,4 @@
 import React from 'react';
-import { Shield, Target as TargetIcon, Plus, Layers, Terminal, Database } from 'lucide-react';
 import { Target } from '../types/target';
 import { Button } from './Button';
 
@@ -7,6 +6,7 @@ interface NavbarProps {
   targets: Target[];
   activeTarget: Target | null;
   activeTab: 'tools' | 'assets' | 'terminal';
+  isRunning: boolean;
   onSelectTarget: (target: Target) => void;
   onOpenCreateTarget: () => void;
   onSelectTab: (tab: 'tools' | 'assets' | 'terminal') => void;
@@ -16,94 +16,90 @@ export const Navbar: React.FC<NavbarProps> = ({
   targets,
   activeTarget,
   activeTab,
+  isRunning,
   onSelectTarget,
   onOpenCreateTarget,
   onSelectTab,
 }) => {
   return (
-    <header className="bg-dark-800/90 border-b border-dark-600/70 backdrop-blur sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Brand */}
+    <header className="bg-[#161b22] border-b border-[#30363d] sticky top-0 z-40">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+        {/* Brand & Tabs */}
         <div className="flex items-center space-x-6">
-          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => onSelectTab('tools')}>
-            <div className="p-2 rounded-xl bg-cyber-cyan/10 border border-cyber-cyan/30 text-cyber-cyan shadow-sm shadow-cyber-cyan/20">
-              <Shield className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-lg font-black tracking-wider text-gray-100 font-mono">BHF</span>
-              <span className="text-[10px] text-cyber-cyan block font-mono font-medium -mt-1 tracking-widest uppercase">
-                Bug Hunter
-              </span>
-            </div>
+          <div
+            className="flex items-center space-x-2.5 cursor-pointer select-none"
+            onClick={() => onSelectTab('tools')}
+          >
+            <span className="text-base font-black tracking-wider text-zinc-100 font-mono">BHF</span>
+            <span className="text-xs text-zinc-500 font-mono hidden sm:inline">| Bug Hunting Framework</span>
           </div>
 
           {/* Navigation Links */}
-          <nav className="hidden md:flex items-center space-x-1 pl-4 border-l border-dark-600/60 text-xs">
+          <nav className="flex items-center space-x-1 text-xs font-mono">
             <button
               onClick={() => onSelectTab('tools')}
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg font-medium transition ${
+              className={`px-3 py-1.5 rounded transition-colors ${
                 activeTab === 'tools'
-                  ? 'bg-dark-700 text-cyber-cyan'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-dark-700/50'
+                  ? 'bg-[#21262d] text-zinc-100 font-medium'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#21262d]/50'
               }`}
             >
-              <Layers className="w-4 h-4" />
-              <span>Methodology & Tools</span>
+              Methodology
             </button>
 
             <button
               onClick={() => onSelectTab('assets')}
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg font-medium transition ${
+              className={`px-3 py-1.5 rounded transition-colors ${
                 activeTab === 'assets'
-                  ? 'bg-dark-700 text-cyber-cyan'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-dark-700/50'
+                  ? 'bg-[#21262d] text-zinc-100 font-medium'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#21262d]/50'
               }`}
             >
-              <Database className="w-4 h-4" />
-              <span>Attack Surface Assets</span>
+              Discovered Assets
             </button>
 
             <button
               onClick={() => onSelectTab('terminal')}
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg font-medium transition ${
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded transition-colors ${
                 activeTab === 'terminal'
-                  ? 'bg-dark-700 text-cyber-cyan'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-dark-700/50'
+                  ? 'bg-[#21262d] text-zinc-100 font-medium'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#21262d]/50'
               }`}
             >
-              <Terminal className="w-4 h-4" />
-              <span>Live Console</span>
+              <span>Console</span>
+              {isRunning && (
+                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse ml-1" />
+              )}
             </button>
           </nav>
         </div>
 
         {/* Target Scope Switcher */}
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center space-x-2 bg-dark-900 border border-dark-600/80 rounded-lg px-2.5 py-1.5 text-xs">
-            <TargetIcon className="w-4 h-4 text-cyber-cyan shrink-0" />
+        <div className="flex items-center space-x-2">
+          <div className="flex items-center bg-[#0d1117] border border-[#30363d] rounded px-2.5 py-1 text-xs">
+            <span className="text-zinc-500 font-mono mr-2 text-[11px]">Scope:</span>
             <select
               value={activeTarget?.id || ''}
               onChange={(e) => {
                 const found = targets.find((t) => t.id === e.target.value);
                 if (found) onSelectTarget(found);
               }}
-              className="bg-transparent text-gray-100 font-mono text-xs focus:outline-none cursor-pointer pr-2"
+              className="bg-transparent text-zinc-200 font-mono text-xs focus:outline-none cursor-pointer pr-1"
             >
               {targets.length === 0 ? (
                 <option value="">No Targets Defined</option>
               ) : (
                 targets.map((t) => (
-                  <option key={t.id} value={t.id} className="bg-dark-800 text-gray-100">
-                    {t.name} ({t.domain})
+                  <option key={t.id} value={t.id} className="bg-[#161b22] text-zinc-200">
+                    {t.domain}
                   </option>
                 ))
               )}
             </select>
           </div>
 
-          <Button variant="primary" size="sm" onClick={onOpenCreateTarget}>
-            <Plus className="w-3.5 h-3.5 mr-1" />
-            New Scope
+          <Button variant="secondary" size="sm" onClick={onOpenCreateTarget}>
+            + Add Target
           </Button>
         </div>
       </div>

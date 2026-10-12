@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Target as TargetIcon, Plus } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Button } from './Button';
 import { targetService, CreateTargetPayload } from '../services/targetService';
 import { Target } from '../types/target';
@@ -49,78 +49,72 @@ export const CreateTargetModal: React.FC<CreateTargetModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className="bg-dark-800 border border-dark-600 rounded-xl max-w-md w-full p-6 shadow-2xl relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
+      <div className="bg-[#161b22] border border-[#30363d] rounded-md max-w-md w-full p-5 relative shadow-xl">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-100"
+          className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-100"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
 
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="p-2.5 rounded-lg bg-cyber-cyan/10 text-cyber-cyan border border-cyber-cyan/30">
-            <TargetIcon className="w-6 h-6" />
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-gray-100">Add Target Program</h3>
-            <p className="text-xs text-gray-400">Define target scope domain for reconnaissance</p>
-          </div>
+        <div className="mb-4">
+          <h3 className="text-sm font-bold text-zinc-100 font-mono">Add Target Scope</h3>
+          <p className="text-xs text-zinc-400 mt-0.5">Define a root domain or scope program for recon</p>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded-lg bg-cyber-rose/10 border border-cyber-rose/30 text-cyber-rose text-xs">
+          <div className="mb-3 p-2 rounded bg-red-950/70 border border-red-800 text-red-300 text-xs font-mono">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-xs font-medium text-gray-300 mb-1">
-              Program / Target Name
+            <label className="block text-xs font-mono text-zinc-300 mb-1">
+              Target / Program Name
             </label>
             <input
               type="text"
-              placeholder="e.g. Acme Bug Bounty"
+              placeholder="e.g. HackerOne - Target Corp"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-cyber-cyan"
+              className="w-full bg-[#0d1117] border border-[#30363d] rounded px-3 py-1.5 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 font-mono"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-300 mb-1">
-              Root Scope Domain <span className="text-cyber-rose">*</span>
+            <label className="block text-xs font-mono text-zinc-300 mb-1">
+              Root Domain <span className="text-red-400">*</span>
             </label>
             <input
               type="text"
-              placeholder="e.g. example.com"
+              placeholder="e.g. target.com"
               value={domain}
               onChange={(e) => setDomain(e.target.value)}
               required
-              className="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-cyber-cyan font-mono"
+              className="w-full bg-[#0d1117] border border-[#30363d] rounded px-3 py-1.5 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 font-mono"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-300 mb-1">
-              Scope Notes & Rules (Optional)
+            <label className="block text-xs font-mono text-zinc-300 mb-1">
+              Scope Notes (Optional)
             </label>
             <textarea
               rows={3}
-              placeholder="Out of scope domains, rate limits, bounty policy notes..."
+              placeholder="Out-of-scope subdomains, bounty rules, rate limits..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-cyber-cyan resize-none"
+              className="w-full bg-[#0d1117] border border-[#30363d] rounded px-3 py-1.5 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 resize-none font-mono"
             />
           </div>
 
-          <div className="flex justify-end space-x-3 pt-2">
+          <div className="flex justify-end space-x-2 pt-2 border-t border-[#21262d]">
             <Button variant="ghost" type="button" onClick={onClose}>
               Cancel
             </Button>
             <Button variant="primary" type="submit" isLoading={isLoading}>
-              <Plus className="w-4 h-4 mr-1.5" />
               Add Target
             </Button>
           </div>

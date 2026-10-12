@@ -4,10 +4,18 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 )
 
 // Load reads configuration from environment variables with sensible defaults.
 func Load() *Config {
+	// Ensure user go bin and local bin are always available in PATH for tool discovery
+	curPath := os.Getenv("PATH")
+	homeDir, _ := os.UserHomeDir()
+	goBin := filepath.Join(homeDir, "go", "bin")
+	if !strings.Contains(curPath, goBin) {
+		_ = os.Setenv("PATH", curPath+":"+goBin+":/usr/local/bin")
+	}
 	port := 8080
 	if val := os.Getenv("BHF_PORT"); val != "" {
 		if p, err := strconv.Atoi(val); err == nil && p > 0 {

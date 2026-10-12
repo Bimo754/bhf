@@ -38,7 +38,7 @@ export const App: React.FC = () => {
   const [runningScanId, setRunningScanId] = useState<string | null>(null);
   const wsRef = useRef<ScanWebSocket | null>(null);
 
-  // Load initial targets and tools
+  // Initial load
   useEffect(() => {
     targetService.list().then((list) => {
       setTargets(list);
@@ -54,7 +54,13 @@ export const App: React.FC = () => {
   useEffect(() => {
     if (!activeTarget) return;
 
-    scanService.listByTarget(activeTarget.id).then(setScans).catch(console.error);
+    scanService.listByTarget(activeTarget.id).then((scs) => {
+      setScans(scs);
+      if (scs.length > 0 && !activeScanId) {
+        setActiveScanId(scs[0].id);
+      }
+    }).catch(console.error);
+
     loadAssets(1, assetSearch);
   }, [activeTarget]);
 
@@ -75,12 +81,15 @@ export const App: React.FC = () => {
       wsRef.current = null;
     }
 
-    if (!activeScanId) return;
+    if (!activeScanId) {
+      setActiveScanLogs([]);
+      return;
+    }
 
-    // Load historical logs first
+    // Load historical logs
     scanService.getLogs(activeScanId).then(setActiveScanLogs).catch(console.error);
 
-    // Connect real-time socket
+    // Stream real-time events
     const ws = new ScanWebSocket(
       activeScanId,
       (msg: StreamMessage) => {
@@ -103,9 +112,6 @@ export const App: React.FC = () => {
             setRunningScanId(null);
           }
         }
-      },
-      () => {
-        // Closed
       }
     );
 
@@ -134,10 +140,12 @@ export const App: React.FC = () => {
         {
           scan_id: scan.id,
           stream: 'system',
-          line: `[+] Launching ${toolName} on target: ${activeTarget.domain}...`,
+          line: `[BHF] Initiating ${toolName} execution against ${activeTarget.domain}`,
           timestamp: new Date().toISOString(),
         },
       ]);
+      // Navigate cleanly to console so user can see it running without jumping
+      setActiveTab('terminal');
     } catch (err: any) {
       alert(`Failed to launch tool: ${err.message}`);
     }
@@ -152,29 +160,33 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleViewLogs = (scanId: string) => {
+    setActiveScanId(scanId);
+    setActiveTab('terminal');
+  };
+
   return (
-    <div className="min-h-screen bg-dark-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#0d1117] flex flex-col font-sans text-zinc-100">
       <Navbar
         targets={targets}
         activeTarget={activeTarget}
         activeTab={activeTab}
+        isRunning={!!runningScanId}
         onSelectTarget={setActiveTarget}
         onOpenCreateTarget={() => setIsCreateModalOpen(true)}
         onSelectTab={setActiveTab}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6">
         {activeTab === 'tools' && (
           <ToolsView
             tools={tools}
             scans={scans}
             activeTarget={activeTarget}
-            activeScanLogs={activeScanLogs}
             currentRunningScanId={runningScanId}
             onExecuteTool={handleExecuteTool}
-            onViewLogs={(id) => setActiveScanId(id)}
+            onViewLogs={handleViewLogs}
             onStopScan={handleStopScan}
-            onClearLogs={() => setActiveScanLogs([])}
           />
         )}
 
@@ -194,6 +206,9 @@ export const App: React.FC = () => {
 
         {activeTab === 'terminal' && (
           <TerminalView
+            scans={scans}
+            activeScanId={activeScanId}
+            onSelectScan={setActiveScanId}
             logs={activeScanLogs}
             isRunning={!!runningScanId}
             onStop={() => runningScanId && handleStopScan(runningScanId)}
