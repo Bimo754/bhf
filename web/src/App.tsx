@@ -11,6 +11,7 @@ import { assetService } from './services/assetService';
 import { ScanWebSocket } from './services/wsService';
 import { Navbar } from './components/Navbar';
 import { CreateTargetModal } from './components/CreateTargetModal';
+import { DeleteTargetModal } from './components/DeleteTargetModal';
 import { ToolsView } from './views/ToolsView';
 import { AssetsView } from './views/AssetsView';
 import { TerminalView } from './views/TerminalView';
@@ -22,6 +23,7 @@ export const App: React.FC = () => {
   const [scans, setScans] = useState<Scan[]>([]);
   const [activeTab, setActiveTab] = useState<'tools' | 'assets' | 'terminal'>('tools');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   // Asset State
   const [assetsData, setAssetsData] = useState<PaginatedAssets>({
@@ -165,6 +167,16 @@ export const App: React.FC = () => {
     setActiveTab('terminal');
   };
 
+  const handleDeleteTarget = async (target: Target) => {
+    await targetService.delete(target.id);
+    const remaining = targets.filter((t) => t.id !== target.id);
+    setTargets(remaining);
+    setActiveTarget(remaining.length > 0 ? remaining[0] : null);
+    setScans([]);
+    setAssetsData({ assets: [], total: 0, page: 1, limit: 50 });
+    setActiveScanId(null);
+  };
+
   return (
     <div className="min-h-screen bg-[#0d1117] flex flex-col font-sans text-zinc-100">
       <Navbar
@@ -174,6 +186,7 @@ export const App: React.FC = () => {
         isRunning={!!runningScanId}
         onSelectTarget={setActiveTarget}
         onOpenCreateTarget={() => setIsCreateModalOpen(true)}
+        onOpenDeleteTarget={() => setIsDeleteModalOpen(true)}
         onSelectTab={setActiveTab}
       />
 
@@ -224,6 +237,13 @@ export const App: React.FC = () => {
           setTargets((prev) => [target, ...prev]);
           setActiveTarget(target);
         }}
+      />
+
+      <DeleteTargetModal
+        isOpen={isDeleteModalOpen}
+        target={activeTarget}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirmDelete={handleDeleteTarget}
       />
     </div>
   );

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Trash2 } from 'lucide-react';
 import { Target } from '../types/target';
 import { Button } from './Button';
 
@@ -9,6 +10,7 @@ interface NavbarProps {
   isRunning: boolean;
   onSelectTarget: (target: Target) => void;
   onOpenCreateTarget: () => void;
+  onOpenDeleteTarget?: () => void;
   onSelectTab: (tab: 'tools' | 'assets' | 'terminal') => void;
 }
 
@@ -19,6 +21,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   isRunning,
   onSelectTarget,
   onOpenCreateTarget,
+  onOpenDeleteTarget,
   onSelectTab,
 }) => {
   return (
@@ -96,6 +99,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                 ))
               )}
             </select>
+            {activeTarget && onOpenDeleteTarget && (
+              <button
+                type="button"
+                onClick={onOpenDeleteTarget}
+                title={`Delete ${activeTarget.domain}`}
+                className="p-1 rounded text-zinc-500 hover:text-red-400 hover:bg-[#21262d] transition-colors ml-1"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
           <Button variant="secondary" size="sm" onClick={onOpenCreateTarget}>
