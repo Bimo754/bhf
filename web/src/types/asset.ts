@@ -12,9 +12,18 @@ export interface Asset {
   created_at: string;
 }
 
+export interface AssetStats {
+  total: number;
+  live: number;
+  code_2xx: number;
+  code_3xx: number;
+  code_4xx_5xx: number;
+}
+
 export interface PaginatedAssets {
   assets: Asset[];
   total: number;
   page: number;
   limit: number;
+  stats?: AssetStats;
 }

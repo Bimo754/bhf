@@ -54,8 +54,41 @@ func (r *AssetRepo) Upsert(asset *models.Asset) error {
 	return nil
 }
 
-// ListByTarget returns assets for a target with pagination and optional search query.
-func (r *AssetRepo) ListByTarget(targetID string, search string, limit, offset int) ([]models.Asset, int, error) {
+// AssetStats holds aggregate counts for different asset classifications.
+type AssetStats struct {
+	Total      int `json:"total"`
+	Live       int `json:"live"`
+	Code2xx    int `json:"code_2xx"`
+	Code3xx    int `json:"code_3xx"`
+	Code4xx5xx int `json:"code_4xx_5xx"`
+}
+
+// GetStats returns aggregate classification counts for a target scope.
+func (r *AssetRepo) GetStats(targetID string) (AssetStats, error) {
+	query := `SELECT 
+		COUNT(*),
+		COUNT(CASE WHEN status_code > 0 OR url != '' THEN 1 END),
+		COUNT(CASE WHEN status_code >= 200 AND status_code < 300 THEN 1 END),
+		COUNT(CASE WHEN status_code >= 300 AND status_code < 400 THEN 1 END),
+		COUNT(CASE WHEN status_code >= 400 THEN 1 END)
+	FROM assets WHERE target_id = ?`
+
+	var stats AssetStats
+	err := r.db.QueryRow(query, targetID).Scan(
+		&stats.Total,
+		&stats.Live,
+		&stats.Code2xx,
+		&stats.Code3xx,
+		&stats.Code4xx5xx,
+	)
+	if err != nil {
+		return stats, fmt.Errorf("failed to get asset stats: %w", err)
+	}
+	return stats, nil
+}
+
+// ListByTarget returns assets for a target with pagination and optional search query & filter.
+func (r *AssetRepo) ListByTarget(targetID string, search string, filter string, limit, offset int) ([]models.Asset, int, error) {
 	if limit <= 0 {
 		limit = 50
 	}
@@ -63,9 +96,23 @@ func (r *AssetRepo) ListByTarget(targetID string, search string, limit, offset i
 		offset = 0
 	}
 
-	// Count total matching
-	countQuery := `SELECT COUNT(*) FROM assets WHERE target_id = ? AND (host LIKE ? OR title LIKE ? OR ip LIKE ? OR url LIKE ?)`
+	filterClause := ""
+	switch filter {
+	case "live":
+		filterClause = " AND (status_code > 0 OR url != '')"
+	case "2xx":
+		filterClause = " AND (status_code >= 200 AND status_code < 300)"
+	case "3xx":
+		filterClause = " AND (status_code >= 300 AND status_code < 400)"
+	case "errors":
+		filterClause = " AND (status_code >= 400)"
+	}
+
 	searchPattern := "%" + search + "%"
+
+	// Count total matching
+	countQuery := `SELECT COUNT(*) FROM assets 
+		WHERE target_id = ? AND (host LIKE ? OR title LIKE ? OR ip LIKE ? OR url LIKE ?)` + filterClause
 	var total int
 	err := r.db.QueryRow(countQuery, targetID, searchPattern, searchPattern, searchPattern, searchPattern).Scan(&total)
 	if err != nil {
@@ -75,7 +122,7 @@ func (r *AssetRepo) ListByTarget(targetID string, search string, limit, offset i
 	// Fetch paginated
 	query := `SELECT id, target_id, scan_id, host, url, ip, port, status_code, title, technologies, created_at
 		FROM assets 
-		WHERE target_id = ? AND (host LIKE ? OR title LIKE ? OR ip LIKE ? OR url LIKE ?)
+		WHERE target_id = ? AND (host LIKE ? OR title LIKE ? OR ip LIKE ? OR url LIKE ?)` + filterClause + `
 		ORDER BY created_at DESC LIMIT ? OFFSET ?`
 
 	rows, err := r.db.Query(query, targetID, searchPattern, searchPattern, searchPattern, searchPattern, limit, offset)

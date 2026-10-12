@@ -21,16 +21,18 @@ func NewAssetHandler(repo *database.AssetRepo) *AssetHandler {
 
 // AssetListResponse provides paginated results metadata.
 type AssetListResponse struct {
-	Assets []models.Asset `json:"assets"`
-	Total  int            `json:"total"`
-	Page   int            `json:"page"`
-	Limit  int            `json:"limit"`
+	Assets []models.Asset      `json:"assets"`
+	Total  int                 `json:"total"`
+	Page   int                 `json:"page"`
+	Limit  int                 `json:"limit"`
+	Stats  database.AssetStats `json:"stats"`
 }
 
 // ListByTarget returns paginated assets for a given target scope.
 func (h *AssetHandler) ListByTarget(w http.ResponseWriter, r *http.Request) {
 	targetID := chi.URLParam(r, "targetID")
 	search := r.URL.Query().Get("search")
+	filter := r.URL.Query().Get("filter")
 
 	page := 1
 	if p, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil && p > 0 {
@@ -43,11 +45,13 @@ func (h *AssetHandler) ListByTarget(w http.ResponseWriter, r *http.Request) {
 	}
 
 	offset := (page - 1) * limit
-	assets, total, err := h.repo.ListByTarget(targetID, search, limit, offset)
+	assets, total, err := h.repo.ListByTarget(targetID, search, filter, limit, offset)
 	if err != nil {
 		ErrorJSON(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	stats, _ := h.repo.GetStats(targetID)
 
 	if assets == nil {
 		assets = []models.Asset{}
@@ -58,5 +62,6 @@ func (h *AssetHandler) ListByTarget(w http.ResponseWriter, r *http.Request) {
 		Total:  total,
 		Page:   page,
 		Limit:  limit,
+		Stats:  stats,
 	})
 }

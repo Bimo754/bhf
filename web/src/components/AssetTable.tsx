@@ -157,27 +157,37 @@ export const AssetTable: React.FC<AssetTableProps> = ({
       {/* Filter Chips Bar */}
       <div className="px-3 py-2 bg-[#0d1117] border-b border-[#21262d] flex items-center justify-between text-xs font-mono">
         <div className="flex items-center space-x-1 overflow-x-auto">
-          {(
-            [
-              { key: 'all', label: `All (${data.total})` },
-              { key: 'live', label: 'Live Web' },
-              { key: '2xx', label: '2xx OK' },
-              { key: '3xx', label: '3xx Redirect' },
-              { key: 'errors', label: '4xx / 5xx' },
-            ] as const
-          ).map((chip) => (
-            <button
-              key={chip.key}
-              onClick={() => setActiveFilter(chip.key)}
-              className={`px-2 py-0.5 rounded text-[11px] transition-colors ${
-                activeFilter === chip.key
-                  ? 'bg-[#21262d] text-zinc-100 font-semibold border border-[#30363d]'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#161b22]'
-              }`}
-            >
-              {chip.label}
-            </button>
-          ))}
+          {(() => {
+            const stats = data.stats || {
+              total: data.total,
+              live: 0,
+              code_2xx: 0,
+              code_3xx: 0,
+              code_4xx_5xx: 0,
+            };
+
+            const chips = [
+              { key: 'all' as const, label: `All (${stats.total})` },
+              { key: 'live' as const, label: `Live Web (${stats.live})` },
+              { key: '2xx' as const, label: `2xx OK (${stats.code_2xx})` },
+              { key: '3xx' as const, label: `3xx Redirect (${stats.code_3xx})` },
+              { key: 'errors' as const, label: `4xx / 5xx (${stats.code_4xx_5xx})` },
+            ];
+
+            return chips.map((chip) => (
+              <button
+                key={chip.key}
+                onClick={() => setActiveFilter(chip.key)}
+                className={`px-2 py-0.5 rounded text-[11px] transition-colors shrink-0 ${
+                  activeFilter === chip.key
+                    ? 'bg-[#21262d] text-zinc-100 font-semibold border border-[#30363d]'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#161b22]'
+                }`}
+              >
+                {chip.label}
+              </button>
+            ));
+          })()}
         </div>
 
         <div className="text-zinc-500 text-[11px] hidden sm:block">

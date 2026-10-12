@@ -57,20 +57,51 @@ func (t *NucleiTool) OutputFile(scanID string) string {
 
 func (t *NucleiTool) DefaultArgs(target *models.Target, hosts []string, liveURLs []string, outputFile string) []string {
 	// If live URLs exist, scan them! Otherwise scan discovered hosts, or fallback to root domain.
-	targets := liveURLs
-	if len(targets) == 0 {
-		targets = hosts
+	rawTargets := liveURLs
+	if len(rawTargets) == 0 {
+		rawTargets = hosts
+	}
+
+	cleanRoot := CleanDomain(target.Domain)
+	var targets []string
+	for _, item := range rawTargets {
+		item = strings.TrimSpace(item)
+		if item == "" {
+			continue
+		}
+		if u, err := url.Parse(item); err == nil && u.Hostname() != "" {
+			if IsInScope(u.Hostname(), cleanRoot) {
+				targets = append(targets, item)
+			}
+		} else if IsInScope(item, cleanRoot) {
+			targets = append(targets, item)
+		}
 	}
 
 	if len(targets) > 0 {
 		listFile := outputFile + ".targets.txt"
 		if err := os.WriteFile(listFile, []byte(strings.Join(targets, "\n")), 0644); err == nil {
-			return []string{"-l", listFile, "-s", "info,low,medium,high,critical", "-o", outputFile, "-jsonl"}
+			return []string{
+				"-l", listFile,
+				"-s", "info,low,medium,high,critical",
+				"-c", "25",
+				"-rl", "150",
+				"-stats",
+				"-si", "10",
+				"-jle", outputFile,
+			}
 		}
 	}
 
-	clean := CleanDomain(target.Domain)
-	return []string{"-u", clean, "-s", "info,low,medium,high,critical", "-o", outputFile, "-jsonl"}
+	return []string{
+		"-u", cleanRoot,
+		"-s", "info,low,medium,high,critical",
+		"-c", "25",
+		"-rl", "150",
+		"-stats",
+		"-si", "10",
+		"-jle", outputFile,
+	}
 }
 
 func (t *NucleiTool) IsInstalled() bool {
