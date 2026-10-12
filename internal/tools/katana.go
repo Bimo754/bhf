@@ -50,7 +50,7 @@ func (t *KatanaTool) Description() string {
 }
 
 func (t *KatanaTool) OutputFile(scanID string) string {
-	return filepath.Join(os.TempDir(), "katana_"+scanID+".jsonl")
+	return filepath.Join(os.TempDir(), "katana_"+scanID+".txt")
 }
 
 func (t *KatanaTool) DefaultArgs(target *models.Target, hosts []string, liveURLs []string, outputFile string) []string {
@@ -62,13 +62,11 @@ func (t *KatanaTool) DefaultArgs(target *models.Target, hosts []string, liveURLs
 	return []string{
 		"-u", targetURL,
 		"-depth", "2",
-		"-ct", "3m",
-		"-timeout", "7",
+		"-timeout", "10",
 		"-c", "10",
-		"-rl", "50",
+		"-rl", "100",
 		"-iqp",
 		"-o", outputFile,
-		"-jsonl",
 	}
 }
 
@@ -79,9 +77,33 @@ func (t *KatanaTool) IsInstalled() bool {
 
 func (t *KatanaTool) Run(execCtx ExecutionContext, rawOutput []string) ([]models.Asset, error) {
 	var assets []models.Asset
+	seen := make(map[string]bool)
 	now := time.Now().UTC()
 
-	// 1. Try reading the structured JSON file
+	parseURL := func(raw string, statusCode int) {
+		raw = strings.TrimSpace(raw)
+		if raw == "" || (!strings.HasPrefix(raw, "http://") && !strings.HasPrefix(raw, "https://")) {
+			return
+		}
+		if seen[raw] {
+			return
+		}
+		seen[raw] = true
+
+		if parsed, err := url.Parse(raw); err == nil && parsed.Hostname() != "" {
+			assets = append(assets, models.Asset{
+				ID:         uuid.New().String(),
+				TargetID:   execCtx.Target.ID,
+				ScanID:     execCtx.Scan.ID,
+				Host:       parsed.Hostname(),
+				URL:        raw,
+				StatusCode: statusCode,
+				CreatedAt:  now,
+			})
+		}
+	}
+
+	// 1. Try reading the output file (handles both plain URLs and JSON lines)
 	if execCtx.OutputFile != "" {
 		if f, err := os.Open(execCtx.OutputFile); err == nil {
 			scanner := bufio.NewScanner(f)
@@ -92,23 +114,14 @@ func (t *KatanaTool) Run(execCtx ExecutionContext, rawOutput []string) ([]models
 				}
 
 				var item KatanaJSON
-				if err := json.Unmarshal([]byte(line), &item); err == nil {
+				if strings.HasPrefix(line, "{") && json.Unmarshal([]byte(line), &item) == nil {
 					endpoint := item.Endpoint
 					if endpoint == "" {
 						endpoint = item.Request.URL
 					}
-
-					if parsed, err := url.Parse(endpoint); err == nil && parsed.Hostname() != "" {
-						assets = append(assets, models.Asset{
-							ID:         uuid.New().String(),
-							TargetID:   execCtx.Target.ID,
-							ScanID:     execCtx.Scan.ID,
-							Host:       parsed.Hostname(),
-							URL:        endpoint,
-							StatusCode: item.Response.StatusCode,
-							CreatedAt:  now,
-						})
-					}
+					parseURL(endpoint, item.Response.StatusCode)
+				} else {
+					parseURL(line, 0)
 				}
 			}
 			_ = f.Close()
@@ -116,22 +129,10 @@ func (t *KatanaTool) Run(execCtx ExecutionContext, rawOutput []string) ([]models
 		}
 	}
 
-	// 2. Fallback to parsing rawOutput lines
+	// 2. Fallback to parsing rawOutput lines from terminal stream
 	if len(assets) == 0 {
 		for _, line := range rawOutput {
-			line = strings.TrimSpace(line)
-			if strings.HasPrefix(line, "http://") || strings.HasPrefix(line, "https://") {
-				if parsed, err := url.Parse(line); err == nil && parsed.Hostname() != "" {
-					assets = append(assets, models.Asset{
-						ID:        uuid.New().String(),
-						TargetID:  execCtx.Target.ID,
-						ScanID:    execCtx.Scan.ID,
-						Host:      parsed.Hostname(),
-						URL:       line,
-						CreatedAt: now,
-					})
-				}
-			}
+			parseURL(line, 0)
 		}
 	}
 
