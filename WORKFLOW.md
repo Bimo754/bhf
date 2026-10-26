@@ -211,6 +211,7 @@ Before proposing or making any changes, you must read:
 3. TESTING.md (test suite architecture and table-driven test patterns)
 4. WORKFLOW.md (hunter methodology, 6 recon sections, tool isolation, debugging runbook)
 5. CHANGELOG.md (current progress and recent modifications)
+6. personal.md (operator tracking, active bugs, and feature wishlist)
 
 The Hunter's Perspective and 6 Offensive Sections:
 Always approach tasks with a bug bounty hunter's mindset (prioritizing high ROI over noise, stealth, and actionable reproduction). Structure your thinking around the 6 core recon sections:

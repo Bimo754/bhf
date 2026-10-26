@@ -54,3 +54,4 @@ make build
 - [Testing Guidelines](TESTING.md): Test architecture, table-driven test patterns, and pre-commit checklist.
 - [Development Workflow](WORKFLOW.md): Feature addition lifecycle, dependency isolation, and session starter prompt.
 - [Changelog](CHANGELOG.md): Progress tracking and release history.
+- [Personal Tracker](personal.md): Operator scratchpad for logging active bugs, feature requests, and target notes.
