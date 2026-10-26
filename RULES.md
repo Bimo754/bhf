@@ -54,16 +54,12 @@ This document establishes the binding engineering principles, architectural cons
 ## 4. Offensive Security, Hunter Methodology, and Traffic Safety
 
 - **The Hunter's Perspective (ROI Over Noise)**:
-  - Think like an elite bug bounty hunter, not an automated script kiddy. Every tool and feature must map directly into one of the **6 Offensive Reconnaissance Sections**:
-    1. **Subdomain and OSINT Enumeration** (`subfinder`, `assetfinder`, `theharvester`, `dnsx`): Expand the perimeter passively, resolve DNS records, and discard wildcards.
-    2. **Port and Network Scanning** (`naabu`): Discover exposed, non-standard TCP/UDP services (e.g., `8080`, `8443`, `9000`, `3000`) where staging and admin apps reside.
-    3. **Live HTTP/S Probing and Fingerprinting** (`httpx`): Validate live web services, extract titles, detect tech stacks, and prioritize high-value targets (e.g., `401`/`403` bypass candidates, Spring Boot, Swagger, Actuators).
-    4. **Crawling and URL Discovery** (`katana`, `gau`): Mine historical archives and spider dynamic endpoints to uncover hidden API routes and sensitive query parameters (`id=`, `url=`, `token=`).
-    5. **Content Discovery and Fuzzing** (`ffuf`): Targeted directory and configuration brute-forcing (e.g., `.git`, `.env`, backup files) using calibrated wordlists.
-    6. **Vulnerability Assessment and Verification** (`nuclei`): Run high-signal, targeted vulnerability templates, producing reproducible `curl` commands and actionable findings.
+  - Think like an elite bug bounty hunter, not an automated script kiddy. Every capability and feature must map directly into the **Progressive Methodology Pipeline** (e.g., Subdomain & OSINT Enumeration, Port & Network Scanning, Live HTTP/S Probing, Crawling & Endpoint Discovery, Content Discovery & Fuzzing, Vulnerability Assessment, and future specialized stages).
+  - High ROI over volume: 5 accurately prioritized, high-value assets are infinitely more valuable than 10,000 dead subdomains.
 - **Pipeline Data Chaining**:
-  - Reconnaissance is a progressive funnel. Output from one section must cleanly feed the next:
-    `Target Domain -> Subdomains -> Resolved IPs -> Open Ports -> Live HTTP URLs -> Crawled Routes & Fuzzed Endpoints -> Verified Findings`.
+  - Reconnaissance is a progressive, extensible funnel. Output from one stage must cleanly feed the next:
+    `Target Scope -> Perimeter Mapping -> Resolved Hosts -> Open Services -> Active Web Endpoints -> Crawled Routes & Fuzzed Paths -> Verified Findings`.
+  - As new methodology stages and specialized tools are added, they must integrate seamlessly into this progressive data chain without breaking existing stages.
 - **Network Traffic and WAF Discipline**:
   - Never generate unthrottled request floods that saturate target bandwidth, degrade availability, or trigger rapid IP/WAF bans.
   - Enforce sane rate limits (`-rl`, `-rate`), concurrency caps (`-c`), and timeout limits (`-timeout`) on all active scanners (Katana, Ffuf, Nuclei, Httpx, Naabu).

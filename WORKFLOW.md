@@ -4,27 +4,30 @@ This document defines the standard engineering lifecycle for adding features, in
 
 ---
 
-## 1. The Hunter's Methodology: 6 Offensive Reconnaissance Sections
+## 1. The Hunter's Methodology: Progressive Reconnaissance Pipeline
 
-BHF is designed around the progressive recon funnel used by professional bug bounty hunters. Every feature, scanner, and data model must map directly to one of these 6 sections:
+BHF is designed around an extensible, progressive recon funnel used by professional bug bounty hunters. The framework continuously evolves, allowing new stages and specialized tools to be integrated as capabilities expand:
 
 ```
-[Section 1: Subdomain & OSINT] -> Discover in-scope perimeter & resolve DNS
+[Perimeter Discovery]     -> Discover in-scope perimeter & resolve DNS
        |
        v
-[Section 2: Port & Network]   -> Uncover non-standard ports & exposed services
+[Network & Port Mapping]  -> Uncover non-standard ports & exposed services
        |
        v
-[Section 3: HTTP/S Probing]    -> Fingerprint live web, status codes, tech stack, priority score
+[HTTP/S Probing]          -> Fingerprint live web, status codes, tech stack, priority score
        |
        v
-[Section 4: Crawling & URLs]   -> Extract dynamic routes, API endpoints, sensitive query params
+[Crawling & Endpoints]    -> Extract dynamic routes, API endpoints, sensitive query params
        |
        v
-[Section 5: Content Discovery] -> Targeted fuzzing for .git, .env, backups, admin portals
+[Content Fuzzing]         -> Targeted fuzzing for .git, .env, backups, admin portals
        |
        v
-[Section 6: Vulnerability Scan]-> High-confidence template execution & verified cURL reproduction
+[Vulnerability Analysis]  -> High-confidence template execution & verified cURL reproduction
+       |
+       v
+[Specialized Extensions]  -> (e.g., Cloud Assets, Secret Scanning, Auth Analysis)
 ```
 
 ### Section 1: Subdomain and OSINT Enumeration
@@ -92,7 +95,7 @@ Every code modification or feature addition must follow this 7-step sequence:
 
 ### Step 1: Reconnaissance Value and Traffic Safety Assessment
 Before writing any code, answer these three mandatory questions:
-1. **Which of the 6 hunting sections does this serve?** Features that do not yield high-signal intelligence or speed up analysis are rejected.
+1. **Which methodology pipeline stage does this serve?** Features that do not yield high-signal intelligence or speed up analysis are rejected.
 2. **Will this trigger excessive network traffic or WAF bans?** Any active network requests must include rate limiting (`-rl`), concurrency bounds (`-c`), and timeout controls.
 3. **Is scope strictly maintained?** Ensure that no third-party assets can leak into the database.
 
@@ -200,7 +203,7 @@ When a bug occurs (e.g., scan fails unexpectedly, output is not parsed, database
 
 ## 5. Starter Prompt for New Conversations
 
-When opening a new session or thread with the AI assistant, copy and paste the following prompt. It instructs the assistant to adopt the hunter's perspective, follow the 6 offensive reconnaissance sections, and adhere strictly to all engineering rules:
+When opening a new session or thread with the AI assistant, copy and paste the following prompt. It establishes the hunter's perspective, adapts dynamically to evolving pipeline stages and tools, and enforces all engineering standards:
 
 ```text
 You are working on BHF (Bug Hunting Framework) located at /home/diamond/Desktop/Github/bhf.
@@ -209,18 +212,19 @@ Before proposing or making any changes, you must read:
 1. ARCHITECTURE.md (system design, models, directory structure, MCP)
 2. RULES.md (engineering rules, UI standards, Single Responsibility Principle, zero emojis, zero guesswork)
 3. TESTING.md (test suite architecture and table-driven test patterns)
-4. WORKFLOW.md (hunter methodology, 6 recon sections, tool isolation, debugging runbook)
+4. WORKFLOW.md (hunter methodology, pipeline stages, tool isolation, debugging runbook)
 5. CHANGELOG.md (current progress and recent modifications)
 6. personal.md (operator tracking, active bugs, and feature wishlist)
 
-The Hunter's Perspective and 6 Offensive Sections:
-Always approach tasks with a bug bounty hunter's mindset (prioritizing high ROI over noise, stealth, and actionable reproduction). Structure your thinking around the 6 core recon sections:
-1. Subdomain & OSINT Enumeration (subfinder, assetfinder, theharvester, dnsx)
-2. Port & Network Scanning (naabu)
-3. Live HTTP/S Probing & Fingerprinting (httpx, priority scoring)
-4. Crawling & URL Discovery (katana, gau)
-5. Content Discovery & Fuzzing (ffuf)
-6. Vulnerability Assessment & Verification (nuclei)
+The Hunter's Perspective and Methodology Pipeline:
+Always approach tasks with a bug bounty hunter's mindset (prioritizing high ROI over noise, stealth, progressive data chaining, and actionable reproduction). Structure your thinking around the methodology stages established in the architecture:
+- Subdomain & OSINT Enumeration: Expand perimeter passively, resolve DNS, eliminate wildcards, enforce strict scope.
+- Port & Network Scanning: Uncover non-standard ports and exposed services where dev/staging/admin interfaces hide.
+- Live HTTP/S Probing & Fingerprinting: Validate active web targets, detect tech stacks, calculate priority scores.
+- Crawling & Endpoint Discovery: Mine archives and spider dynamic applications for hidden API routes and parameters.
+- Content Discovery & Fuzzing: Surgical directory/file brute forcing for high-value exposures with calibrated rate limits.
+- Vulnerability Assessment & Verification: High-confidence vulnerability testing with verified, executable cURL reproductions.
+(As BHF evolves, adapt and integrate new methodology stages and specialized tools into this progressive funnel without hardcoding assumptions).
 
 Core Engineering Commandments:
 - Follow the Single Responsibility Principle: each file has one single job.
