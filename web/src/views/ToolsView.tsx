@@ -22,8 +22,12 @@ interface MethodologyStage {
 
 const METHODOLOGY_STAGES: MethodologyStage[] = [
   {
-    title: 'Subdomain Enumeration',
-    toolNames: ['subfinder', 'assetfinder'],
+    title: 'Subdomain & OSINT Enumeration',
+    toolNames: ['subfinder', 'assetfinder', 'theharvester', 'dnsx'],
+  },
+  {
+    title: 'Port & Network Scanning',
+    toolNames: ['naabu'],
   },
   {
     title: 'Live Host Probing',

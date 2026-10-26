@@ -41,6 +41,7 @@ func MigrateSchema(db *sql.DB) error {
 			status_code INTEGER DEFAULT 0,
 			title TEXT DEFAULT '',
 			technologies TEXT DEFAULT '[]',
+			priority_score INTEGER DEFAULT 0,
 			created_at DATETIME NOT NULL,
 			FOREIGN KEY(target_id) REFERENCES targets(id) ON DELETE CASCADE,
 			FOREIGN KEY(scan_id) REFERENCES scans(id) ON DELETE CASCADE,
@@ -56,10 +57,28 @@ func MigrateSchema(db *sql.DB) error {
 			FOREIGN KEY(scan_id) REFERENCES scans(id) ON DELETE CASCADE
 		);`,
 
+		`CREATE TABLE IF NOT EXISTS findings (
+			id TEXT PRIMARY KEY,
+			target_id TEXT NOT NULL,
+			scan_id TEXT NOT NULL,
+			tool_name TEXT NOT NULL,
+			severity TEXT NOT NULL,
+			name TEXT NOT NULL,
+			matched_at TEXT NOT NULL,
+			description TEXT DEFAULT '',
+			extracted_results TEXT DEFAULT '[]',
+			curl_command TEXT DEFAULT '',
+			created_at DATETIME NOT NULL,
+			FOREIGN KEY(target_id) REFERENCES targets(id) ON DELETE CASCADE,
+			FOREIGN KEY(scan_id) REFERENCES scans(id) ON DELETE CASCADE
+		);`,
+
 		`CREATE INDEX IF NOT EXISTS idx_scans_target_id ON scans(target_id);`,
 		`CREATE INDEX IF NOT EXISTS idx_assets_target_id ON assets(target_id);`,
 		`CREATE INDEX IF NOT EXISTS idx_assets_host ON assets(host);`,
 		`CREATE INDEX IF NOT EXISTS idx_logs_scan_id ON logs(scan_id);`,
+		`CREATE INDEX IF NOT EXISTS idx_findings_target_id ON findings(target_id);`,
+		`CREATE INDEX IF NOT EXISTS idx_findings_severity ON findings(severity);`,
 	}
 
 	for _, query := range queries {
@@ -67,6 +86,9 @@ func MigrateSchema(db *sql.DB) error {
 			return fmt.Errorf("migration query failed: %w (query: %s)", err, query)
 		}
 	}
+
+	// Ensure priority_score column exists for existing database instances
+	_, _ = db.Exec(`ALTER TABLE assets ADD COLUMN priority_score INTEGER DEFAULT 0;`)
 
 	return nil
 }

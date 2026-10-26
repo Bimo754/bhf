@@ -54,7 +54,7 @@ func (t *SubfinderTool) IsInstalled() bool {
 	return err == nil
 }
 
-func (t *SubfinderTool) Run(execCtx ExecutionContext, rawOutput []string) ([]models.Asset, error) {
+func (t *SubfinderTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, error) {
 	var assets []models.Asset
 	now := time.Now().UTC()
 	cleanRoot := CleanDomain(execCtx.Target.Domain)
@@ -90,5 +90,5 @@ func (t *SubfinderTool) Run(execCtx ExecutionContext, rawOutput []string) ([]mod
 		}
 	}
 
-	return assets, nil
+	return Result{Assets: assets}, nil
 }

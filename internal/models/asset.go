@@ -12,7 +12,8 @@ type Asset struct {
 	IP           string    `json:"ip,omitempty"`
 	Port         int       `json:"port,omitempty"`
 	StatusCode   int       `json:"status_code,omitempty"`
-	Title        string    `json:"title,omitempty"`
-	Technologies []string  `json:"technologies,omitempty"`
-	CreatedAt    time.Time `json:"created_at"`
+	Title         string    `json:"title,omitempty"`
+	Technologies  []string  `json:"technologies,omitempty"`
+	PriorityScore int       `json:"priority_score,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
 }

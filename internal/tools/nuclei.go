@@ -18,13 +18,16 @@ import (
 type NucleiJSON struct {
 	TemplateID string `json:"template-id"`
 	Info       struct {
-		Name     string   `json:"name"`
-		Severity string   `json:"severity"`
-		Tags     []string `json:"tags"`
+		Name        string   `json:"name"`
+		Severity    string   `json:"severity"`
+		Description string   `json:"description"`
+		Tags        []string `json:"tags"`
 	} `json:"info"`
-	Host    string `json:"host"`
-	Matched string `json:"matched-at"`
-	IP      string `json:"ip"`
+	Host        string   `json:"host"`
+	Matched     string   `json:"matched-at"`
+	IP          string   `json:"ip"`
+	CurlCommand string   `json:"curl-command"`
+	Extracted   []string `json:"extracted-results"`
 }
 
 // NucleiTool implements the Tool interface for ProjectDiscovery's Nuclei.
@@ -109,11 +112,12 @@ func (t *NucleiTool) IsInstalled() bool {
 	return err == nil
 }
 
-func (t *NucleiTool) Run(execCtx ExecutionContext, rawOutput []string) ([]models.Asset, error) {
+func (t *NucleiTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, error) {
+	var findings []models.Finding
 	var assets []models.Asset
 	now := time.Now().UTC()
 
-	// 1. Try reading the structured JSON file
+	// 1. Try reading the structured JSONL file
 	if execCtx.OutputFile != "" {
 		if f, err := os.Open(execCtx.OutputFile); err == nil {
 			scanner := bufio.NewScanner(f)
@@ -130,17 +134,44 @@ func (t *NucleiTool) Run(execCtx ExecutionContext, rawOutput []string) ([]models
 						host = parsed.Hostname()
 					}
 
-					assets = append(assets, models.Asset{
-						ID:           uuid.New().String(),
-						TargetID:     execCtx.Target.ID,
-						ScanID:       execCtx.Scan.ID,
-						Host:         host,
-						URL:          item.Matched,
-						IP:           item.IP,
-						Title:        item.Info.Name + " [" + strings.ToUpper(item.Info.Severity) + "]",
-						Technologies: item.Info.Tags,
-						CreatedAt:    now,
+					name := item.Info.Name
+					if name == "" {
+						name = item.TemplateID
+					}
+
+					sev := models.Severity(strings.ToLower(item.Info.Severity))
+					if sev == "" {
+						sev = models.SeverityInfo
+					}
+
+					findings = append(findings, models.Finding{
+						ID:               uuid.New().String(),
+						TargetID:         execCtx.Target.ID,
+						ScanID:           execCtx.Scan.ID,
+						ToolName:         t.Name(),
+						Severity:         sev,
+						Name:             name,
+						MatchedAt:        item.Matched,
+						Description:      item.Info.Description,
+						ExtractedResults: item.Extracted,
+						CurlCommand:      item.CurlCommand,
+						CreatedAt:        now,
 					})
+
+					// Record asset if host is known
+					if host != "" {
+						assets = append(assets, models.Asset{
+							ID:           uuid.New().String(),
+							TargetID:     execCtx.Target.ID,
+							ScanID:       execCtx.Scan.ID,
+							Host:         host,
+							URL:          item.Matched,
+							IP:           item.IP,
+							Title:        name + " [" + strings.ToUpper(string(sev)) + "]",
+							Technologies: item.Info.Tags,
+							CreatedAt:    now,
+						})
+					}
 				}
 			}
 			_ = f.Close()
@@ -149,30 +180,32 @@ func (t *NucleiTool) Run(execCtx ExecutionContext, rawOutput []string) ([]models
 		}
 	}
 
-	// 2. Fallback to scanning rawOutput for matches
-	if len(assets) == 0 {
+	// 2. Fallback to scanning rawOutput lines for matches
+	if len(findings) == 0 {
 		for _, line := range rawOutput {
 			line = strings.TrimSpace(line)
 			if strings.HasPrefix(line, "[") && strings.Contains(line, "http") {
 				parts := strings.Fields(line)
 				for _, part := range parts {
 					if strings.HasPrefix(part, "http") {
-						if parsed, err := url.Parse(part); err == nil {
-							assets = append(assets, models.Asset{
-								ID:        uuid.New().String(),
-								TargetID:  execCtx.Target.ID,
-								ScanID:    execCtx.Scan.ID,
-								Host:      parsed.Hostname(),
-								URL:       part,
-								Title:     line,
-								CreatedAt: now,
-							})
-						}
+						findings = append(findings, models.Finding{
+							ID:        uuid.New().String(),
+							TargetID:  execCtx.Target.ID,
+							ScanID:    execCtx.Scan.ID,
+							ToolName:  t.Name(),
+							Severity:  models.SeverityInfo,
+							Name:      line,
+							MatchedAt: part,
+							CreatedAt: now,
+						})
 					}
 				}
 			}
 		}
 	}
 
-	return assets, nil
+	return Result{
+		Assets:   assets,
+		Findings: findings,
+	}, nil
 }

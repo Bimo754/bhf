@@ -18,14 +18,15 @@ import (
 
 // ScanHandler manages tool execution requests and history.
 type ScanHandler struct {
-	scanRepo   *database.ScanRepo
-	targetRepo *database.TargetRepo
-	assetRepo  *database.AssetRepo
-	logRepo    *database.LogRepo
-	dispatcher *engine.Dispatcher
-	runner     *engine.Runner
-	registry   *tools.Registry
-	hub        *engine.Hub
+	scanRepo    *database.ScanRepo
+	targetRepo  *database.TargetRepo
+	assetRepo   *database.AssetRepo
+	findingRepo *database.FindingRepo
+	logRepo     *database.LogRepo
+	dispatcher  *engine.Dispatcher
+	runner      *engine.Runner
+	registry    *tools.Registry
+	hub         *engine.Hub
 }
 
 // NewScanHandler creates a new ScanHandler.
@@ -33,6 +34,7 @@ func NewScanHandler(
 	scanRepo *database.ScanRepo,
 	targetRepo *database.TargetRepo,
 	assetRepo *database.AssetRepo,
+	findingRepo *database.FindingRepo,
 	logRepo *database.LogRepo,
 	dispatcher *engine.Dispatcher,
 	runner *engine.Runner,
@@ -40,14 +42,15 @@ func NewScanHandler(
 	hub *engine.Hub,
 ) *ScanHandler {
 	return &ScanHandler{
-		scanRepo:   scanRepo,
-		targetRepo: targetRepo,
-		assetRepo:  assetRepo,
-		logRepo:    logRepo,
-		dispatcher: dispatcher,
-		runner:     runner,
-		registry:   registry,
-		hub:        hub,
+		scanRepo:    scanRepo,
+		targetRepo:  targetRepo,
+		assetRepo:   assetRepo,
+		findingRepo: findingRepo,
+		logRepo:     logRepo,
+		dispatcher:  dispatcher,
+		runner:      runner,
+		registry:    registry,
+		hub:         hub,
 	}
 }
 
@@ -149,6 +152,12 @@ func (h *ScanHandler) executeScanAsync(
 			finalStatus = models.StatusFailed
 			errMsg = runErr.Error()
 		}
+		_ = h.logRepo.Append(&models.LogEntry{
+			ScanID:    scan.ID,
+			Stream:    "stderr",
+			Line:      errMsg,
+			Timestamp: now,
+		})
 	}
 
 	// Always parse findings even if stopped by user, to preserve all assets discovered so far
@@ -162,11 +171,18 @@ func (h *ScanHandler) executeScanAsync(
 		CustomArgs:      args,
 	}
 
-	assets, parseErr := tool.Run(execCtx, rawOutput)
-	if parseErr == nil && len(assets) > 0 {
-		for i := range assets {
-			if tools.IsInScope(assets[i].Host, target.Domain) {
-				_ = h.assetRepo.Upsert(&assets[i])
+	result, parseErr := tool.Run(execCtx, rawOutput)
+	if parseErr == nil {
+		if len(result.Assets) > 0 {
+			for i := range result.Assets {
+				if tools.IsInScope(result.Assets[i].Host, target.Domain) {
+					_ = h.assetRepo.Upsert(&result.Assets[i])
+				}
+			}
+		}
+		if len(result.Findings) > 0 {
+			for i := range result.Findings {
+				_ = h.findingRepo.Insert(&result.Findings[i])
 			}
 		}
 	}

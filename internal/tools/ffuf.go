@@ -70,12 +70,36 @@ func (t *FfufTool) ensureWordlist() string {
 }
 
 func (t *FfufTool) DefaultArgs(target *models.Target, hosts []string, liveURLs []string, outputFile string) []string {
+	wordlist := t.ensureWordlist()
+
+	// If multiple live URLs exist, fuzz across all of them using multi-wordlist mapping
+	if len(liveURLs) > 1 {
+		listFile := outputFile + ".targets.txt"
+		var cleanURLs []string
+		for _, u := range liveURLs {
+			u = strings.TrimRight(strings.TrimSpace(u), "/")
+			if u != "" {
+				cleanURLs = append(cleanURLs, u)
+			}
+		}
+		if len(cleanURLs) > 1 && os.WriteFile(listFile, []byte(strings.Join(cleanURLs, "\n")), 0644) == nil {
+			return []string{
+				"-u", "HOST/FUZZ",
+				"-w", listFile + ":HOST",
+				"-w", wordlist + ":FUZZ",
+				"-mc", "200,204,301,302,307,401,403",
+				"-rate", "80",
+				"-o", outputFile,
+				"-of", "json",
+			}
+		}
+	}
+
 	targetURL := "https://" + CleanDomain(target.Domain)
 	if len(liveURLs) > 0 {
 		targetURL = strings.TrimRight(liveURLs[0], "/")
 	}
 
-	wordlist := t.ensureWordlist()
 	return []string{
 		"-u", targetURL + "/FUZZ",
 		"-w", wordlist,
@@ -90,7 +114,7 @@ func (t *FfufTool) IsInstalled() bool {
 	return err == nil
 }
 
-func (t *FfufTool) Run(execCtx ExecutionContext, rawOutput []string) ([]models.Asset, error) {
+func (t *FfufTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, error) {
 	var assets []models.Asset
 	now := time.Now().UTC()
 
@@ -114,6 +138,7 @@ func (t *FfufTool) Run(execCtx ExecutionContext, rawOutput []string) ([]models.A
 				}
 			}
 			_ = os.Remove(execCtx.OutputFile)
+			_ = os.Remove(execCtx.OutputFile + ".targets.txt")
 		}
 	}
 
@@ -136,5 +161,5 @@ func (t *FfufTool) Run(execCtx ExecutionContext, rawOutput []string) ([]models.A
 		}
 	}
 
-	return assets, nil
+	return Result{Assets: assets}, nil
 }

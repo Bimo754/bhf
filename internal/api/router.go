@@ -10,12 +10,14 @@ import (
 
 // RouterConfig holds all handler dependencies to initialize the HTTP routing table.
 type RouterConfig struct {
-	TargetHandler *TargetHandler
-	ScanHandler   *ScanHandler
-	AssetHandler  *AssetHandler
-	ToolHandler   *ToolHandler
-	WSHandler     *WSHandler
-	StaticFS      http.FileSystem
+	TargetHandler  *TargetHandler
+	ScanHandler    *ScanHandler
+	AssetHandler   *AssetHandler
+	FindingHandler *FindingHandler
+	ToolHandler    *ToolHandler
+	WSHandler      *WSHandler
+	MCPServer      http.Handler
+	StaticFS       http.FileSystem
 }
 
 // NewRouter constructs a configured chi HTTP router.
@@ -61,10 +63,21 @@ func NewRouter(cfg RouterConfig) http.Handler {
 			a.Get("/target/{targetID}", cfg.AssetHandler.ListByTarget)
 		})
 
+		// Security findings
+		api.Route("/findings", func(f chi.Router) {
+			f.Get("/target/{targetID}", cfg.FindingHandler.ListByTarget)
+			f.Delete("/{id}", cfg.FindingHandler.Delete)
+		})
+
 		// Supported tools catalog
 		api.Route("/tools", func(tl chi.Router) {
 			tl.Get("/", cfg.ToolHandler.List)
 		})
+
+		// Model Context Protocol (MCP) AI integration
+		if cfg.MCPServer != nil {
+			api.Post("/mcp", cfg.MCPServer.ServeHTTP)
+		}
 
 		// WebSocket streaming
 		api.Get("/ws/scans/{id}/logs", cfg.WSHandler.StreamLogs)

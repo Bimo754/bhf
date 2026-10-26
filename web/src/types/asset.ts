@@ -9,6 +9,7 @@ export interface Asset {
   status_code?: number;
   title?: string;
   technologies?: string[];
+  priority_score?: number;
   created_at: string;
 }
 
@@ -18,6 +19,8 @@ export interface AssetStats {
   code_2xx: number;
   code_3xx: number;
   code_4xx_5xx: number;
+  high_priority?: number;
+  new_assets?: number;
 }
 
 export interface PaginatedAssets {

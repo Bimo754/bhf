@@ -48,7 +48,7 @@ func (t *GauTool) IsInstalled() bool {
 	return err == nil
 }
 
-func (t *GauTool) Run(execCtx ExecutionContext, rawOutput []string) ([]models.Asset, error) {
+func (t *GauTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, error) {
 	var assets []models.Asset
 	now := time.Now().UTC()
 
@@ -73,5 +73,5 @@ func (t *GauTool) Run(execCtx ExecutionContext, rawOutput []string) ([]models.As
 		})
 	}
 
-	return assets, nil
+	return Result{Assets: assets}, nil
 }

@@ -9,6 +9,9 @@ services:
     volumes:
       - ./data:/app/data
     restart: unless-stopped
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
     environment:
       - BHF_PORT=8080
       - BHF_HOST=0.0.0.0

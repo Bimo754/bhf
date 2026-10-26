@@ -13,7 +13,7 @@ interface AssetTableProps {
   isLoading?: boolean;
 }
 
-type FilterChip = 'all' | 'live' | '2xx' | '3xx' | 'errors';
+type FilterChip = 'all' | 'priority' | 'live' | '2xx' | '3xx' | 'errors';
 
 export const AssetTable: React.FC<AssetTableProps> = ({
   data,
@@ -37,6 +37,9 @@ export const AssetTable: React.FC<AssetTableProps> = ({
 
   const filteredAssets = useMemo(() => {
     if (activeFilter === 'all') return data.assets;
+    if (activeFilter === 'priority') {
+      return data.assets.filter((a) => (a.priority_score && a.priority_score >= 30));
+    }
     if (activeFilter === 'live') {
       return data.assets.filter((a) => (a.status_code && a.status_code > 0) || a.url);
     }
@@ -168,6 +171,7 @@ export const AssetTable: React.FC<AssetTableProps> = ({
 
             const chips = [
               { key: 'all' as const, label: `All (${stats.total})` },
+              { key: 'priority' as const, label: `Priority Targets (${stats.high_priority || 0})` },
               { key: 'live' as const, label: `Live Web (${stats.live})` },
               { key: '2xx' as const, label: `2xx OK (${stats.code_2xx})` },
               { key: '3xx' as const, label: `3xx Redirect (${stats.code_3xx})` },
@@ -227,18 +231,25 @@ export const AssetTable: React.FC<AssetTableProps> = ({
                     {/* Host & URL */}
                     <td className="py-2 px-3 font-semibold text-zinc-200">
                       <div className="flex flex-col max-w-md">
-                        {liveURL ? (
-                          <a
-                            href={liveURL}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-zinc-100 hover:text-blue-400 truncate font-semibold"
-                          >
-                            {asset.host}
-                          </a>
-                        ) : (
-                          <span className="truncate">{asset.host}</span>
-                        )}
+                        <div className="flex items-center space-x-1.5 truncate">
+                          {liveURL ? (
+                            <a
+                              href={liveURL}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-zinc-100 hover:text-blue-400 truncate font-semibold"
+                            >
+                              {asset.host}
+                            </a>
+                          ) : (
+                            <span className="truncate">{asset.host}</span>
+                          )}
+                          {asset.priority_score && asset.priority_score >= 30 ? (
+                            <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-amber-950/70 text-amber-300 border border-amber-700/70 shrink-0">
+                              ★ {asset.priority_score}
+                            </span>
+                          ) : null}
+                        </div>
                         {asset.url && asset.url !== `https://${asset.host}` && asset.url !== `http://${asset.host}` && (
                           <span className="text-[11px] text-zinc-500 truncate font-normal">
                             {asset.url}

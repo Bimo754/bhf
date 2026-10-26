@@ -54,11 +54,24 @@ func (t *KatanaTool) OutputFile(scanID string) string {
 }
 
 func (t *KatanaTool) DefaultArgs(target *models.Target, hosts []string, liveURLs []string, outputFile string) []string {
-	targetURL := "https://" + CleanDomain(target.Domain)
+	// If live URLs exist, crawl all of them via a target list file!
 	if len(liveURLs) > 0 {
-		targetURL = liveURLs[0]
+		listFile := outputFile + ".targets.txt"
+		if err := os.WriteFile(listFile, []byte(strings.Join(liveURLs, "\n")), 0644); err == nil {
+			return []string{
+				"-list", listFile,
+				"-depth", "2",
+				"-fs", "dn",
+				"-timeout", "10",
+				"-c", "10",
+				"-rl", "100",
+				"-iqp",
+				"-o", outputFile,
+			}
+		}
 	}
 
+	targetURL := "https://" + CleanDomain(target.Domain)
 	return []string{
 		"-u", targetURL,
 		"-depth", "2",
@@ -76,7 +89,7 @@ func (t *KatanaTool) IsInstalled() bool {
 	return err == nil
 }
 
-func (t *KatanaTool) Run(execCtx ExecutionContext, rawOutput []string) ([]models.Asset, error) {
+func (t *KatanaTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, error) {
 	var assets []models.Asset
 	seen := make(map[string]bool)
 	now := time.Now().UTC()
@@ -130,6 +143,7 @@ func (t *KatanaTool) Run(execCtx ExecutionContext, rawOutput []string) ([]models
 			}
 			_ = f.Close()
 			_ = os.Remove(execCtx.OutputFile)
+			_ = os.Remove(execCtx.OutputFile + ".targets.txt")
 		}
 	}
 
@@ -140,5 +154,5 @@ func (t *KatanaTool) Run(execCtx ExecutionContext, rawOutput []string) ([]models
 		}
 	}
 
-	return assets, nil
+	return Result{Assets: assets}, nil
 }

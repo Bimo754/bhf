@@ -47,7 +47,7 @@ func (t *AssetfinderTool) IsInstalled() bool {
 	return err == nil
 }
 
-func (t *AssetfinderTool) Run(execCtx ExecutionContext, rawOutput []string) ([]models.Asset, error) {
+func (t *AssetfinderTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, error) {
 	var assets []models.Asset
 	now := time.Now().UTC()
 	cleanRoot := CleanDomain(execCtx.Target.Domain)
@@ -69,5 +69,5 @@ func (t *AssetfinderTool) Run(execCtx ExecutionContext, rawOutput []string) ([]m
 		}
 	}
 
-	return assets, nil
+	return Result{Assets: assets}, nil
 }

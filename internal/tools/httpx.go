@@ -71,7 +71,7 @@ func (t *HttpxTool) IsInstalled() bool {
 	return err == nil
 }
 
-func (t *HttpxTool) Run(execCtx ExecutionContext, rawOutput []string) ([]models.Asset, error) {
+func (t *HttpxTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, error) {
 	var assets []models.Asset
 	now := time.Now().UTC()
 
@@ -140,5 +140,5 @@ func (t *HttpxTool) Run(execCtx ExecutionContext, rawOutput []string) ([]models.
 		}
 	}
 
-	return assets, nil
+	return Result{Assets: assets}, nil
 }

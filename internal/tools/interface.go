@@ -12,6 +12,7 @@ type Category string
 
 const (
 	CategorySubdomainEnum Category = "Subdomain Enumeration"
+	CategoryPortScanning  Category = "Port & Network Scanning"
 	CategoryHTTPProbing   Category = "HTTP Probing"
 	CategoryURLDiscovery  Category = "URL Discovery"
 	CategoryCrawling      Category = "Crawling & Spidering"
@@ -54,6 +55,12 @@ type ExecutionContext struct {
 	CustomArgs      []string
 }
 
+// Result holds discovered assets and security findings returned by a tool execution.
+type Result struct {
+	Assets   []models.Asset
+	Findings []models.Finding
+}
+
 // Tool defines the contract for a security tool integration in BHF.
 type Tool interface {
 	Name() string
@@ -63,5 +70,5 @@ type Tool interface {
 	DefaultArgs(target *models.Target, hosts []string, liveURLs []string, outputFile string) []string
 	OutputFile(scanID string) string
 	IsInstalled() bool
-	Run(execCtx ExecutionContext, rawOutput []string) ([]models.Asset, error)
+	Run(execCtx ExecutionContext, rawOutput []string) (Result, error)
 }
