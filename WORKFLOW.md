@@ -1,10 +1,70 @@
 # BHF (Bug Hunting Framework) - Development Workflow and Operational Runbook
 
-This document defines the standard engineering lifecycle for adding features, integrating security tools, managing dependencies, debugging defects, and tracking progress.
+This document defines the standard engineering lifecycle for adding features, integrating security tools, managing dependencies, debugging defects, and tracking progress from an offensive bug hunter's perspective.
 
 ---
 
-## 1. Feature Addition Lifecycle
+## 1. The Hunter's Methodology: 6 Offensive Reconnaissance Sections
+
+BHF is designed around the progressive recon funnel used by professional bug bounty hunters. Every feature, scanner, and data model must map directly to one of these 6 sections:
+
+```
+[Section 1: Subdomain & OSINT] -> Discover in-scope perimeter & resolve DNS
+       |
+       v
+[Section 2: Port & Network]   -> Uncover non-standard ports & exposed services
+       |
+       v
+[Section 3: HTTP/S Probing]    -> Fingerprint live web, status codes, tech stack, priority score
+       |
+       v
+[Section 4: Crawling & URLs]   -> Extract dynamic routes, API endpoints, sensitive query params
+       |
+       v
+[Section 5: Content Discovery] -> Targeted fuzzing for .git, .env, backups, admin portals
+       |
+       v
+[Section 6: Vulnerability Scan]-> High-confidence template execution & verified cURL reproduction
+```
+
+### Section 1: Subdomain and OSINT Enumeration
+- **Primary Tools**: `subfinder`, `assetfinder`, `theharvester`, `dnsx`
+- **Hunter Mindset**: Expand the perimeter as broadly as possible without triggering active alerts. Scrape certificate transparency logs, search engines, and passive threat feeds. Immediately resolve records via `dnsx` to drop dead hosts and wildcard DNS false positives.
+- **Critical Invariant**: Strip wildcards and enforce `tools.IsInScope()` so out-of-scope third parties never contaminate the target inventory.
+
+### Section 2: Port and Network Scanning
+- **Primary Tools**: `naabu`
+- **Hunter Mindset**: Production web servers on ports 80 and 443 are heavily hardened and protected by enterprise WAFs. High-yield bugs (unauthenticated admin panels, dev consoles, staging APIs, Prometheus/Actuator metrics) commonly hide on non-standard ports (e.g., `8080`, `8443`, `8000`, `9000`, `3000`, `5000`, `9200`).
+- **Traffic Safety**: Scan only resolved, live hostnames. Never flood targets with uncontrolled SYN bursts that trigger network-level rate limits.
+
+### Section 3: Live HTTP/S Probing and Fingerprinting
+- **Primary Tools**: `httpx`
+- **Hunter Mindset**: Determine which open ports actually serve HTTP/HTTPS traffic. Inspect HTTP response status codes, page titles, redirects, and technology stacks.
+- **Priority Scoring (ROI Optimization)**:
+  - Automatically flag high-value assets with elevated priority scores:
+    - Status codes `401` and `403`: High-priority authentication bypass and forbidden-bypass candidates.
+    - Sensitive keywords in hostname: `admin`, `api`, `internal`, `dev`, `staging`, `vpn`, `auth`, `portal`.
+    - Sensitive technologies: Spring Boot, Laravel, Jenkins, Swagger, Kubernetes, Actuator, Apache Solr.
+    - Non-standard ports: `8080`, `8443`, `8000`, `9000`, `3000`.
+
+### Section 4: Crawling and URL Discovery
+- **Primary Tools**: `katana`, `gau`
+- **Hunter Mindset**: Spider dynamic applications to extract endpoints, hidden JavaScript routes, and sensitive query parameters (`id=`, `url=`, `redirect=`, `token=`, `file=`). Mine historical archives (Wayback Machine, Common Crawl, AlienVault) for forgotten endpoints and deprecated API routes.
+- **Scope Guard**: Constrain crawlers to in-scope domains (`-fs dn`) to avoid spidering external CDNs, social media widgets, or auth providers.
+
+### Section 5: Content Discovery and Fuzzing
+- **Primary Tools**: `ffuf`
+- **Hunter Mindset**: Perform surgical directory and file brute-forcing against live web targets. Seek high-impact exposures: `.git/config`, `.env`, backup files (`.bak`, `.zip`), configuration dumps, and unlinked admin panels.
+- **Traffic Discipline**: Never use brute-force defaults that send 5,000 req/sec and trigger immediate WAF IP bans. Use calibrated rate limits (`-rate 80`), sensible wordlists, and status filtering (`-mc 200,204,301,302,307,401,403`).
+
+### Section 6: Vulnerability Assessment and Verification
+- **Primary Tools**: `nuclei`
+- **Hunter Mindset**: Scan discovered endpoints with targeted, high-signal vulnerability templates (CVEs, misconfigurations, exposed panels, default credentials).
+- **Reproduction Invariant**: Every finding must include a verified, executable reproduction command (`curl`) and clear severity. Never report low-severity junk, informational banner grabs, or unverified false positives.
+
+---
+
+## 2. Feature Addition Lifecycle
 
 Every code modification or feature addition must follow this 7-step sequence:
 
@@ -32,7 +92,7 @@ Every code modification or feature addition must follow this 7-step sequence:
 
 ### Step 1: Reconnaissance Value and Traffic Safety Assessment
 Before writing any code, answer these three mandatory questions:
-1. **Does this directly assist a bug bounty hunter?** Features that do not yield high-signal intelligence or speed up analysis are rejected.
+1. **Which of the 6 hunting sections does this serve?** Features that do not yield high-signal intelligence or speed up analysis are rejected.
 2. **Will this trigger excessive network traffic or WAF bans?** Any active network requests must include rate limiting (`-rl`), concurrency bounds (`-c`), and timeout controls.
 3. **Is scope strictly maintained?** Ensure that no third-party assets can leak into the database.
 
@@ -44,7 +104,7 @@ Determine exactly which files need to be created or modified according to Single
 
 ### Step 3: Test Definition
 Define tests for the new functionality before or alongside code implementation:
-- If adding a tool, prepare sample output lines and test its `Run()` parser.
+- If adding a tool, prepare sample output lines and test its `Run()` parser in `internal/tools/tools_test.go`.
 - If modifying database logic, add a test in `internal/database/<entity>_repo_test.go`.
 
 ### Step 4: Clean Implementation
@@ -72,7 +132,7 @@ git commit -m "feat(tools): add katana crawler integration with domain scoping"
 
 ---
 
-## 2. Python Tool Isolation Runbook
+## 3. Python Tool Isolation Runbook
 
 To add or update a Python-based security tool (e.g., `theHarvester`, `wafw00f`):
 
@@ -102,7 +162,7 @@ To add or update a Python-based security tool (e.g., `theHarvester`, `wafw00f`):
 
 ---
 
-## 3. Methodical Investigation Runbook (Zero Guesswork)
+## 4. Methodical Investigation Runbook (Zero Guesswork)
 
 When a bug occurs (e.g., scan fails unexpectedly, output is not parsed, database error):
 
@@ -138,21 +198,30 @@ When a bug occurs (e.g., scan fails unexpectedly, output is not parsed, database
 
 ---
 
-## 4. Starter Prompt for New Conversations
+## 5. Starter Prompt for New Conversations
 
-When opening a new session or thread with the AI assistant, use the following starter prompt to immediately establish the project context, architectural guidelines, and operating rules:
+When opening a new session or thread with the AI assistant, copy and paste the following prompt. It instructs the assistant to adopt the hunter's perspective, follow the 6 offensive reconnaissance sections, and adhere strictly to all engineering rules:
 
 ```text
 You are working on BHF (Bug Hunting Framework) located at /home/diamond/Desktop/Github/bhf.
 
 Before proposing or making any changes, you must read:
-1. ARCHITECTURE.md (system design, models, directory structure)
+1. ARCHITECTURE.md (system design, models, directory structure, MCP)
 2. RULES.md (engineering rules, UI standards, Single Responsibility Principle, zero emojis, zero guesswork)
 3. TESTING.md (test suite architecture and table-driven test patterns)
-4. WORKFLOW.md (feature addition lifecycle, dependency isolation, debugging runbook)
+4. WORKFLOW.md (hunter methodology, 6 recon sections, tool isolation, debugging runbook)
 5. CHANGELOG.md (current progress and recent modifications)
 
-Guidelines for your response:
+The Hunter's Perspective and 6 Offensive Sections:
+Always approach tasks with a bug bounty hunter's mindset (prioritizing high ROI over noise, stealth, and actionable reproduction). Structure your thinking around the 6 core recon sections:
+1. Subdomain & OSINT Enumeration (subfinder, assetfinder, theharvester, dnsx)
+2. Port & Network Scanning (naabu)
+3. Live HTTP/S Probing & Fingerprinting (httpx, priority scoring)
+4. Crawling & URL Discovery (katana, gau)
+5. Content Discovery & Fuzzing (ffuf)
+6. Vulnerability Assessment & Verification (nuclei)
+
+Core Engineering Commandments:
 - Follow the Single Responsibility Principle: each file has one single job.
 - Use Conventional Commits naming methodology (feat, fix, refactor, test, docs, chore).
 - UI must remain clean, minimal, developer-grade GitHub Dark (#0d1117). Strictly NO AI glow, NO neon tropes, NO emojis.

@@ -51,9 +51,19 @@ This document establishes the binding engineering principles, architectural cons
 
 ---
 
-## 4. Offensive Security and Traffic Safety
+## 4. Offensive Security, Hunter Methodology, and Traffic Safety
 
-- **Bug Bounty Value First**: Every feature, tool integration, or setting must directly contribute to high-signal reconnaissance or vulnerability identification. Features that generate superficial vanity metrics without actionable recon value are rejected.
+- **The Hunter's Perspective (ROI Over Noise)**:
+  - Think like an elite bug bounty hunter, not an automated script kiddy. Every tool and feature must map directly into one of the **6 Offensive Reconnaissance Sections**:
+    1. **Subdomain and OSINT Enumeration** (`subfinder`, `assetfinder`, `theharvester`, `dnsx`): Expand the perimeter passively, resolve DNS records, and discard wildcards.
+    2. **Port and Network Scanning** (`naabu`): Discover exposed, non-standard TCP/UDP services (e.g., `8080`, `8443`, `9000`, `3000`) where staging and admin apps reside.
+    3. **Live HTTP/S Probing and Fingerprinting** (`httpx`): Validate live web services, extract titles, detect tech stacks, and prioritize high-value targets (e.g., `401`/`403` bypass candidates, Spring Boot, Swagger, Actuators).
+    4. **Crawling and URL Discovery** (`katana`, `gau`): Mine historical archives and spider dynamic endpoints to uncover hidden API routes and sensitive query parameters (`id=`, `url=`, `token=`).
+    5. **Content Discovery and Fuzzing** (`ffuf`): Targeted directory and configuration brute-forcing (e.g., `.git`, `.env`, backup files) using calibrated wordlists.
+    6. **Vulnerability Assessment and Verification** (`nuclei`): Run high-signal, targeted vulnerability templates, producing reproducible `curl` commands and actionable findings.
+- **Pipeline Data Chaining**:
+  - Reconnaissance is a progressive funnel. Output from one section must cleanly feed the next:
+    `Target Domain -> Subdomains -> Resolved IPs -> Open Ports -> Live HTTP URLs -> Crawled Routes & Fuzzed Endpoints -> Verified Findings`.
 - **Network Traffic and WAF Discipline**:
   - Never generate unthrottled request floods that saturate target bandwidth, degrade availability, or trigger rapid IP/WAF bans.
   - Enforce sane rate limits (`-rl`, `-rate`), concurrency caps (`-c`), and timeout limits (`-timeout`) on all active scanners (Katana, Ffuf, Nuclei, Httpx, Naabu).
