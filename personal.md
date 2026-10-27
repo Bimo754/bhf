@@ -62,6 +62,8 @@ Track capabilities, tool integrations, and workflow improvements that increase b
 | FEAT-008 | 2026-10-26 | Live HTTP Probing | Visual reconnaissance gallery (gowitness / httpx) | Automated web screenshots and UI visual triage gallery grid | Backlog |
 | FEAT-009 | 2026-10-26 | Progressive Pipeline | Continuous recon delta engine | Historical snapshots and diffing ([NEW], [CHANGED], [REMOVED]) | Backlog |
 | FEAT-010 | 2026-10-26 | Workflow Orchestration| Automated multi-stage pipeline chaining | 1-click chained scans across stages with operator approval | Backlog |
+| FEAT-011 | 2026-10-27 | Execution Engine | Subprocess group isolation & emergency kill switch | Prevents orphaned processes; allows 1-click abort of all running scans | Backlog |
+| FEAT-012 | 2026-10-27 | UI & Notifications | Persistent notification drawer & OS desktop bread alerts | Notifies hunter when scans complete/stop while working in other windows | Backlog |
 
 *Status Values*: `Idea`, `Planned`, `In Progress`, `Implemented`, `Rejected`
 
@@ -128,6 +130,21 @@ Track capabilities, tool integrations, and workflow improvements that increase b
   - Pipeline coordinator linking stages sequentially:
     `Subdomain Enumeration -> DNS Resolution -> Port Scanning -> HTTP Probing -> Crawling -> Vulnerability Assessment / JS Mining`.
   - Visual stage progression indicator in UI with single-click start and stop.
+
+#### [FEAT-011] Subprocess Group Termination & Emergency Kill Switch
+- **Methodology Stage**: Execution Engine & Process Management
+- **Hunter Justification**: Complex offensive tools often spawn child processes or background threads (e.g. headless browser instances in Katana, subprocess workers in Python tools). When an operator cancels a scan, standard Go context cancellation can leave orphaned child processes continuing to flood targets or consume CPU. Process group isolation and a global kill switch ensure clean termination.
+- **Architecture**:
+  - Backend: In `internal/engine/runner.go`, set `cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}` and terminate the entire process group (`syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)`).
+  - Add `POST /api/scans/kill-all` in `internal/api/scan_handler.go` and `internal/engine/dispatcher.go` to abort all active scans across targets in one click.
+  - Frontend: Add an "Emergency Abort / Kill Running" button in the Navbar or Tools view when scans are active.
+
+#### [FEAT-012] Persistent Notification Drawer & OS Desktop Bread Notifications
+- **Methodology Stage**: UI & Operator Notifications
+- **Hunter Justification**: Long reconnaissance scans run while hunters work in other windows (Burp Suite, terminal, notes). System desktop notifications and an in-app persistent notification history ensure the operator never misses a completed scan, failed process, or critical vulnerability discovery.
+- **Architecture**:
+  - Web Desktop Notifications: Integrate HTML5 Web Notifications API (`Notification.requestPermission()`) in `web/src/services/` to display native OS notification banners when scans finish, fail, or stop while the browser tab is inactive or minimized.
+  - In-App Notification Center: Add an accessible notification drawer/tray in `web/src/components/` logging all scan completion/stop events and critical alerts with 1-click navigation to the scan console or discovered findings.
 
 ---
 
