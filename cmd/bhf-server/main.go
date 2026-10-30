@@ -61,6 +61,8 @@ func main() {
 	registry.Register(tools.NewDNSxTool())
 	registry.Register(tools.NewNaabuTool())
 	registry.Register(tools.NewHttpxTool())
+	registry.Register(tools.NewTlsxTool())
+	registry.Register(tools.NewWafw00fTool())
 	registry.Register(tools.NewKatanaTool())
 	registry.Register(tools.NewGauTool())
 	registry.Register(tools.NewFfufTool())

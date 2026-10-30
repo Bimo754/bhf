@@ -229,3 +229,45 @@ func TestAsnmapParser(t *testing.T) {
 	}
 }
 
+func TestTlsxParser(t *testing.T) {
+	tool := tools.NewTlsxTool()
+	execCtx := newTestContext("target.com")
+
+	rawOutput := []string{
+		`{"host":"target.com:443","ip":"104.16.1.1","port":"443","subject_an":["target.com","dev.target.com","vpn.target.com","out-of-scope.net"],"tls_version":"tls13","jarm":"29d29d00029d"}`,
+	}
+
+	result, err := tool.Run(execCtx, rawOutput)
+	if err != nil {
+		t.Fatalf("Tlsx Run returned unexpected error: %v", err)
+	}
+
+	if len(result.Assets) != 3 {
+		t.Fatalf("expected 3 in-scope assets (root, dev, vpn), got %d", len(result.Assets))
+	}
+}
+
+func TestWafw00fParser(t *testing.T) {
+	tool := tools.NewWafw00fTool()
+	execCtx := newTestContext("target.com")
+
+	rawOutput := []string{
+		"The site https://api.target.com is behind Cloudflare (Cloudflare Inc.) WAF.",
+		"No WAF detected by the generic detection",
+	}
+
+	result, err := tool.Run(execCtx, rawOutput)
+	if err != nil {
+		t.Fatalf("Wafw00f Run returned unexpected error: %v", err)
+	}
+
+	if len(result.Assets) != 1 {
+		t.Fatalf("expected 1 WAF-detected asset, got %d", len(result.Assets))
+	}
+
+	if len(result.Assets[0].Technologies) == 0 || result.Assets[0].Technologies[0] != "WAF:Cloudflare" {
+		t.Errorf("expected technology WAF:Cloudflare, got %v", result.Assets[0].Technologies)
+	}
+}
+
+

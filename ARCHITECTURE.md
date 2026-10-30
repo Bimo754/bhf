@@ -122,7 +122,9 @@ bhf/
 │       ├── registry.go           # Thread-safe registry for installed tools
 │       ├── subfinder.go          # Subfinder passive subdomain enumerator
 │       ├── subzy.go              # Subzy subdomain takeover vulnerability checker
-│       └── theharvester.go       # theHarvester OSINT gatherer (uv isolation)
+│       ├── theharvester.go       # theHarvester OSINT gatherer (uv isolation)
+│       ├── tlsx.go               # Tlsx TLS SAN and certificate intelligence tool
+│       └── wafw00f.go            # Wafw00f WAF detection and fingerprinting tool (uv isolation)
 │   ├── web/                      # Frontend single-page application
 │   │   ├── embed.go              # Go embed.FS declaration for dist/
 │   │   ├── src/
@@ -159,6 +161,8 @@ bhf/
 │      - `naabu`: Fast SYN/Connect port scanning across discovered hostnames to identify exposed non-standard services.
 │   3. **HTTP Probing**:
 │      - `httpx`: Probes discovered hosts on HTTP/HTTPS ports, extracts HTTP status codes, page titles, and web technologies.
+│      - `tlsx`: Extracts SAN hostnames from certificates and captures JARM fingerprints.
+│      - `wafw00f`: Identifies protective WAF vendor technologies to tune rate limits.
 │   4. **Crawling and URL Discovery**:
 │      - `katana`: Spider dynamic endpoints, JS files, and API routes with `-fs dn` scope protection.
 │      - `gau`: Fetches known endpoints from Wayback Machine, AlienVault, and Common Crawl.
