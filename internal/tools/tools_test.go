@@ -318,5 +318,51 @@ func TestJsluiceParser(t *testing.T) {
 	}
 }
 
+func TestArjunParser(t *testing.T) {
+	tool := tools.NewArjunTool()
+	execCtx := newTestContext("target.com")
+
+	rawOutput := []string{
+		"[+] Parameters found for https://target.com/api/users: id, debug, token",
+	}
+
+	result, err := tool.Run(execCtx, rawOutput)
+	if err != nil {
+		t.Fatalf("Arjun Run returned unexpected error: %v", err)
+	}
+
+	if len(result.Findings) != 1 {
+		t.Fatalf("expected 1 finding for discovered parameters, got %d", len(result.Findings))
+	}
+
+	if len(result.Findings[0].ExtractedResults) != 3 {
+		t.Fatalf("expected 3 extracted parameters, got %d", len(result.Findings[0].ExtractedResults))
+	}
+}
+
+func TestNomore403Parser(t *testing.T) {
+	tool := tools.NewNomore403Tool()
+	execCtx := newTestContext("target.com")
+
+	rawOutput := []string{
+		"[200 OK] https://target.com/admin/ (Header: X-Forwarded-For: 127.0.0.1)",
+		"[403 Forbidden] https://target.com/admin/login",
+	}
+
+	result, err := tool.Run(execCtx, rawOutput)
+	if err != nil {
+		t.Fatalf("Nomore403 Run returned unexpected error: %v", err)
+	}
+
+	if len(result.Findings) != 1 {
+		t.Fatalf("expected 1 bypass finding, got %d", len(result.Findings))
+	}
+
+	if result.Findings[0].Severity != models.SeverityHigh {
+		t.Errorf("expected High severity, got %v", result.Findings[0].Severity)
+	}
+}
+
+
 
 

@@ -68,6 +68,8 @@ func main() {
 	registry.Register(tools.NewUroTool())
 	registry.Register(tools.NewJsluiceTool())
 	registry.Register(tools.NewFfufTool())
+	registry.Register(tools.NewArjunTool())
+	registry.Register(tools.NewNomore403Tool())
 	registry.Register(tools.NewAlterxTool())
 	registry.Register(tools.NewSubzyTool())
 	registry.Register(tools.NewAsnmapTool())

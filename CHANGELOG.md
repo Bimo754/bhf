@@ -30,6 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Phase 3 URL deduplication and JavaScript mining tools:
   - `uro`: URL decluttering and deduplication filter for cleaning crawler archives with uv isolation.
   - `jsluice`: Tree-sitter AST JavaScript parser for extracting hidden API routes and leaked secrets.
+- Added Phase 4 content discovery and parameter fuzzing tools:
+  - `arjun`: HTTP parameter discovery detecting hidden GET, POST, and JSON parameters with uv isolation.
+  - `nomore403`: HTTP 401/403 forbidden bypass engine utilizing header injection and path mutations.
 
 ### Changed
 - Standardized UI to developer-grade GitHub Dark theme (`#0d1117`) with zero AI glowing neon hues and zero emojis.

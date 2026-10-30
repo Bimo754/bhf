@@ -109,6 +109,7 @@ bhf/
 │   │   └── target.go             # Bug bounty target scope entity
 │   └── tools/                    # Security tool integrations
 │       ├── alterx.go             # Alterx subdomain permutation generator
+│       ├── arjun.go              # Arjun parameter discovery tool (uv isolation)
 │       ├── asnmap.go             # Asnmap ASN and CIDR mapping tool
 │       ├── assetfinder.go        # Assetfinder runner and parser
 │       ├── dnsx.go               # DNSx DNS resolution and A/CNAME record parser
@@ -119,6 +120,7 @@ bhf/
 │       ├── jsluice.go            # Jsluice tree-sitter AST JavaScript route and secret parser
 │       ├── katana.go             # Katana crawler and endpoint extractor
 │       ├── naabu.go              # Naabu port scanner integration
+│       ├── nomore403.go          # Nomore403 403/401 bypass engine
 │       ├── nuclei.go             # Nuclei vulnerability scanner and JSONL parser
 │       ├── registry.go           # Thread-safe registry for installed tools
 │       ├── subfinder.go          # Subfinder passive subdomain enumerator
@@ -172,6 +174,8 @@ bhf/
 │      - `jsluice`: Parses JavaScript bundles with tree-sitter AST to extract hidden routes and leaked secrets.
 │   5. **Content Discovery and Fuzzing**:
 │      - `ffuf`: Directory and endpoint brute-forcing with calibrated rate limits against discovered live web targets.
+│      - `arjun`: Fuzzes HTTP endpoints to uncover hidden query and body parameters.
+│      - `nomore403`: Tests access control bypasses on 401/403 forbidden assets via header tampering and path mutations.
 │   6. **Vulnerability Assessment**:
 │      - `subzy`: Subdomain takeover vulnerability checker auditing dangling CNAME records.
 │      - `nuclei`: Fast, template-based scanning for exposures, misconfigurations, and known CVEs. Output is streamed live and parsed into structured findings with reproduction `curl` commands.

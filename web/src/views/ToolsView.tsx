@@ -39,7 +39,7 @@ const METHODOLOGY_STAGES: MethodologyStage[] = [
   },
   {
     title: 'Content Discovery',
-    toolNames: ['ffuf'],
+    toolNames: ['ffuf', 'arjun', 'nomore403'],
   },
   {
     title: 'Vulnerability Assessment',
