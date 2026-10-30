@@ -8,6 +8,7 @@ interface ToolCardProps {
   tool: ToolInfo;
   latestScan?: Scan;
   isRunning: boolean;
+  stepNumber?: number;
   onRunClick: (toolName: string) => void;
   onConfigClick: (tool: ToolInfo) => void;
   onViewLogs: (scanId: string) => void;
@@ -18,6 +19,7 @@ export const ToolCard: React.FC<ToolCardProps> = ({
   tool,
   latestScan,
   isRunning,
+  stepNumber,
   onRunClick,
   onConfigClick,
   onViewLogs,
@@ -62,7 +64,15 @@ export const ToolCard: React.FC<ToolCardProps> = ({
 
   return (
     <div className="bg-[#161b22] border border-[#30363d] rounded-md p-3.5 flex items-center justify-between hover:border-zinc-500 transition-colors">
-      <div className="flex items-center space-x-3">
+      <div className="flex items-center space-x-2.5">
+        {stepNumber !== undefined && (
+          <span
+            className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold text-zinc-400 bg-[#21262d] border border-[#30363d]"
+            title={`Step ${stepNumber} in this methodology stage`}
+          >
+            #{stepNumber < 10 ? `0${stepNumber}` : stepNumber}
+          </span>
+        )}
         <h4 className="text-sm font-semibold text-zinc-100 font-mono tracking-wide">
           {tool.name}
         </h4>

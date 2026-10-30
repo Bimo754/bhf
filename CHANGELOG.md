@@ -52,6 +52,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Configurable `-H "Header: value"` and `-b "cookie"` inputs in `RunConfigModal.tsx` for authenticated directory and API fuzzing.
 - Added Dedicated Priority Score & Star Rating Column (`FEAT-013`):
   - Dedicated column with star ratings, tier badges, and 1-click server-side sorting (`priority_score`).
+- Added Automated Methodology Stage Chaining & Progressive Pipeline Coordinator (`FEAT-010`):
+  - Deterministic tool ordering in `ToolsView.tsx` with numbered step badges (`#01`, `#02`, `#03`...).
+  - Stage-level sequential execution button ("Run Stage") to automatically run all tools in a category in order.
+  - "Run Full Recon Pipeline" coordinator with optional crawl feedback loop re-probing newly discovered subdomains with `httpx` after crawling & JS mining before fuzzing and vulnerability scanning.
+  - Thread-safe scan queue advancement and abort controls in `App.tsx`.
 
 ### Changed
 - Standardized UI to developer-grade GitHub Dark theme (`#0d1117`) with zero AI glowing neon hues and zero emojis.
@@ -83,6 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `BUG-002` (Nuclei scan excessive execution duration) by optimizing CLI flags and adding category/severity presets in scan launcher.
 - Fixed `BUG-003` (Discovered Assets pagination intermediate empty pages) by migrating live/status/priority filtering to server-side SQL queries.
 - Fixed `BUG-004` (Scan stop failure toast message truncated) by wrapping text and expanding toast container dimensions.
+- Recorded `BUG-006` (Nuclei missing templates error), `BUG-007` (Remove alterx integration), and `BUG-008` (Visual Gallery placeholders and duplicate cards) in `personal.md`.
 
 ### Tested
 - Database integration test suite (`asset_repo_test.go`, `endpoint_repo_test.go`, `finding_repo_test.go`).

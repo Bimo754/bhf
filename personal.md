@@ -17,6 +17,7 @@ Track defects, crashes, parser anomalies, or UI issues discovered during live ex
 | BUG-005 | 2026-10-30 | Content Discovery | High | Arjun stability probe raises unhandled AttributeError on string response | Resolved |
 | BUG-006 | 2026-10-30 | Vulnerability Assessment | High | Nuclei scan fails immediately with 'no templates provided for scan' due to missing /root/nuclei-templates | Open |
 | BUG-007 | 2026-10-30 | Tooling / Subdomain Enum | Low | Remove alterx tool integration from framework | Open |
+| BUG-008 | 2026-10-30 | Live HTTP Probing / UI | Medium | Visual Gallery shows placeholder 'no screenshots', duplicate redirecting hosts, and failed captures | Open |
 
 *Status Values*: `Open`, `Investigating`, `In Progress`, `Resolved`, `Closed`
 
@@ -104,6 +105,23 @@ Track defects, crashes, parser anomalies, or UI issues discovered during live ex
   - Remove `alterx` installation from `docker/Dockerfile`.
   - Clean up any frontend references in `RunConfigModal.tsx` and documentation.
 
+#### [BUG-008] Visual Gallery Screenshot Failures, Placeholders, and Canonical Duplicates
+- **Date**: 2026-10-30
+- **Recon Stage**: Live HTTP Probing / Visual Reconnaissance
+- **Component**: `VisualGallery.tsx`, `gowitness`, `httpx`
+- **Symptom**:
+  - The Visual Gallery renders numerous cards displaying "No Screenshot Available" because assets without screenshots are shown by default alongside screenshotted hosts.
+  - Multiple duplicate cards exist for the same target service (e.g., 301/302 redirects from `http://` to `https://` or apex domain to `www`).
+  - Many cards render failed capture states (e.g., 400 Bad Request, 502 Bad Gateway, SSL connection resets) where headless browser rendering failed or timed out.
+- **Root Cause**:
+  - `VisualGallery.tsx` filters only on `a.url || a.status_code`, without checking whether a valid screenshot URI exists in `a.technologies`.
+  - No client-side deduplication or canonical redirect folding (e.g. coalescing 301/302 redirect pairs into the destination 200 target).
+  - Unresponsive or broken HTTP endpoints (400, 502) captured by `httpx` are passed directly into `gowitness`, producing failed screenshots.
+- **Target Resolution**: (Tracked, do not fix yet per operator request)
+  - Add a "Screenshots Only" toggle filter in `VisualGallery.tsx` (enabled by default so hunters only browse actual screenshots).
+  - Deduplicate canonical redirect chains and apex/www aliases.
+  - Provide filtering for response status codes (e.g. 2xx/3xx vs error states).
+
 ---
 
 ## 2. Feature & Tool Wishlist
@@ -121,7 +139,7 @@ Track capabilities, tool integrations, and workflow improvements that increase b
 | FEAT-007 | 2026-10-26 | Content Discovery | Parameter discovery (arjun) | Discovers hidden query and body parameters for injection testing | Implemented |
 | FEAT-008 | 2026-10-26 | Live HTTP Probing | Visual reconnaissance gallery (gowitness) | Automated web screenshots and UI visual triage gallery grid | Implemented |
 | FEAT-009 | 2026-10-26 | Progressive Pipeline | Continuous recon delta engine | Historical snapshots and diffing ([NEW], [CHANGED], [REMOVED]) | Backlog |
-| FEAT-010 | 2026-10-26 | Workflow Orchestration| Automated multi-stage pipeline chaining | 1-click chained scans across stages with operator approval | Backlog |
+| FEAT-010 | 2026-10-26 | Workflow Orchestration| Automated multi-stage pipeline chaining | 1-click chained scans across stages with operator approval | Implemented |
 | FEAT-011 | 2026-10-27 | Execution Engine | Subprocess group isolation & emergency kill switch | Prevents orphaned processes; allows 1-click abort of all running scans | Backlog |
 | FEAT-012 | 2026-10-27 | UI & Notifications | Persistent notification drawer & OS desktop bread alerts | Notifies hunter when scans complete/stop while working in other windows | Backlog |
 | FEAT-013 | 2026-10-30 | Discovered Assets / UI | Dedicated Priority Score & Star Rating Column | Moves priority stars and score values out of the host cell into a dedicated column for easier sorting and visual triage | Implemented |
@@ -192,9 +210,10 @@ Track capabilities, tool integrations, and workflow improvements that increase b
 - **Methodology Stage**: Workflow Orchestration
 - **Hunter Justification**: Eliminates repetitive manual execution while preserving 100% operator approval.
 - **Architecture**:
-  - Pipeline coordinator linking stages sequentially:
-    `Subdomain Enumeration -> DNS Resolution -> Port Scanning -> HTTP Probing -> Crawling -> Vulnerability Assessment / JS Mining`.
-  - Visual stage progression indicator in UI with single-click start and stop.
+  - Deterministic tool ordering in `ToolsView.tsx` with numbered step badges (`#01`, `#02`, `#03`...) per methodology stage.
+  - Category-wise sequential execution ("Run Stage") running all tools in a stage one after another.
+  - "Run Full Recon Pipeline" coordinator with optional crawl feedback loop re-probing newly discovered subdomains with `httpx` after crawling & JS mining before fuzzing and vulnerability scanning.
+  - Thread-safe scan queue advancement in `App.tsx` responding to WebSocket completion events, with graceful halts on failures or operator stops.
 
 #### [FEAT-011] Subprocess Group Termination & Emergency Kill Switch
 - **Methodology Stage**: Execution Engine & Process Management

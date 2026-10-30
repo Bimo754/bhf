@@ -16,7 +16,7 @@ import { CreateTargetModal } from './components/CreateTargetModal';
 import { DeleteTargetModal } from './components/DeleteTargetModal';
 import { ToastContainer, ToastMessage } from './components/Toast';
 import { FilterChip } from './components/AssetTable';
-import { ToolsView } from './views/ToolsView';
+import { ToolsView, ActiveQueueState } from './views/ToolsView';
 import { AssetsView } from './views/AssetsView';
 import { FindingsView } from './views/FindingsView';
 import { TerminalView } from './views/TerminalView';
@@ -61,6 +61,11 @@ export const App: React.FC = () => {
   const [activeScanLogs, setActiveScanLogs] = useState<LogEntry[]>([]);
   const [runningScanId, setRunningScanId] = useState<string | null>(null);
   const wsRef = useRef<ScanWebSocket | null>(null);
+
+  // Scan Queue State (Sequential Pipeline Runner)
+  const [activeQueue, setActiveQueue] = useState<ActiveQueueState | null>(null);
+  const activeQueueRef = useRef<ActiveQueueState | null>(null);
+  activeQueueRef.current = activeQueue;
 
   const addToast = (toast: Omit<ToastMessage, 'id'>) => {
     const id = Math.random().toString(36).substring(2, 9);
@@ -243,18 +248,64 @@ export const App: React.FC = () => {
                 title: `${toolTitle} Completed`,
                 message: 'Findings saved. Explore updated inventory in Discovered Assets.',
               });
+
+              // Check if an automated sequence is running
+              const currentQ = activeQueueRef.current;
+              if (currentQ) {
+                const nextIndex = currentQ.currentIndex + 1;
+                if (nextIndex < currentQ.tools.length) {
+                  const nextTool = currentQ.tools[nextIndex];
+                  const updatedQueue = {
+                    ...currentQ,
+                    currentIndex: nextIndex,
+                  };
+                  setActiveQueue(updatedQueue);
+                  activeQueueRef.current = updatedQueue;
+
+                  // Small delay to ensure DB writes are committed before next tool starts
+                  setTimeout(() => {
+                    handleExecuteTool(nextTool, []);
+                  }, 600);
+                } else {
+                  addToast({
+                    type: 'success',
+                    title: `${currentQ.title} Finished`,
+                    message: `All ${currentQ.tools.length} tools in sequence completed successfully.`,
+                  });
+                  setActiveQueue(null);
+                  activeQueueRef.current = null;
+                }
+              }
             } else if (msg.status === 'FAILED') {
               addToast({
                 type: 'error',
                 title: `${toolTitle} Failed`,
                 message: msg.line || 'Check console logs for details.',
               });
+              if (activeQueueRef.current) {
+                addToast({
+                  type: 'error',
+                  title: 'Pipeline Halted',
+                  message: `Sequence "${activeQueueRef.current.title}" halted because ${toolTitle} failed.`,
+                });
+                setActiveQueue(null);
+                activeQueueRef.current = null;
+              }
             } else if (msg.status === 'STOPPED') {
               addToast({
                 type: 'info',
                 title: `${toolTitle} Stopped`,
                 message: 'Process stopped by user. Existing findings preserved.',
               });
+              if (activeQueueRef.current) {
+                addToast({
+                  type: 'info',
+                  title: 'Pipeline Stopped',
+                  message: `Sequence "${activeQueueRef.current.title}" stopped by operator.`,
+                });
+                setActiveQueue(null);
+                activeQueueRef.current = null;
+              }
             }
           }
         }
@@ -299,6 +350,47 @@ export const App: React.FC = () => {
         message: err.message,
       });
     }
+  };
+
+  const handleExecuteQueue = async (toolNames: string[], title: string) => {
+    if (!activeTarget || toolNames.length === 0) return;
+    if (runningScanId) {
+      addToast({
+        type: 'error',
+        title: 'Scan in Progress',
+        message: 'Please wait for the current scan to finish or stop it before starting a sequence.',
+      });
+      return;
+    }
+
+    const queue: ActiveQueueState = {
+      title,
+      tools: toolNames,
+      currentIndex: 0,
+    };
+    setActiveQueue(queue);
+    activeQueueRef.current = queue;
+
+    addToast({
+      type: 'info',
+      title: `Starting ${title}`,
+      message: `Executing ${toolNames.length} tools in sequence: ${toolNames.join(' -> ')}`,
+    });
+
+    await handleExecuteTool(toolNames[0], []);
+  };
+
+  const handleStopQueue = async () => {
+    setActiveQueue(null);
+    activeQueueRef.current = null;
+    if (runningScanId) {
+      await handleStopScan(runningScanId);
+    }
+    addToast({
+      type: 'info',
+      title: 'Sequence Aborted',
+      message: 'Automated scan sequence stopped by operator.',
+    });
   };
 
   const handleStopScan = async (scanId: string) => {
@@ -358,7 +450,10 @@ export const App: React.FC = () => {
             scans={scans}
             activeTarget={activeTarget}
             currentRunningScanId={runningScanId}
+            activeQueue={activeQueue}
             onExecuteTool={handleExecuteTool}
+            onExecuteQueue={handleExecuteQueue}
+            onStopQueue={handleStopQueue}
             onViewLogs={handleViewLogs}
             onStopScan={handleStopScan}
           />
