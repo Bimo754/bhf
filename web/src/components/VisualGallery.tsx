@@ -17,6 +17,7 @@ export const VisualGallery: React.FC<VisualGalleryProps> = ({
   const [hideErrors, setHideErrors] = useState(true);
   const [lightboxImage, setLightboxImage] = useState<{ src: string; title: string; url: string } | null>(null);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   const getScreenshotUrl = (asset: Asset): string | null => {
     const sTag = asset.technologies?.find((t) => t.startsWith('Screenshot:'));
@@ -30,7 +31,7 @@ export const VisualGallery: React.FC<VisualGalleryProps> = ({
       if (!liveURL) return false;
 
       const screenshot = getScreenshotUrl(a);
-      if (screenshotsOnly && !screenshot) return false;
+      if (screenshotsOnly && (!screenshot || failedImages[a.id])) return false;
 
       if (hideErrors && !screenshot && a.status_code && a.status_code >= 400) {
         return false;
@@ -204,7 +205,7 @@ export const VisualGallery: React.FC<VisualGalleryProps> = ({
                   <div
                     className="relative aspect-video bg-[#0d1117] flex items-center justify-center overflow-hidden border-b border-[#21262d] cursor-pointer"
                     onClick={() => {
-                      if (screenshot) {
+                      if (screenshot && !failedImages[asset.id]) {
                         setLightboxImage({
                           src: screenshot,
                           title: asset.title || asset.host,
@@ -213,17 +214,22 @@ export const VisualGallery: React.FC<VisualGalleryProps> = ({
                       }
                     }}
                   >
-                    {screenshot ? (
+                    {screenshot && !failedImages[asset.id] ? (
                       <img
                         src={screenshot}
                         alt={`Screenshot of ${asset.host}`}
                         className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-200"
                         loading="lazy"
+                        onError={() => {
+                          setFailedImages((prev) => ({ ...prev, [asset.id]: true }));
+                        }}
                       />
                     ) : (
                       <div className="flex flex-col items-center justify-center p-4 text-center text-zinc-600">
                         <Camera className="w-6 h-6 mb-1 text-zinc-700" />
-                        <span className="text-[10px]">No screenshot</span>
+                        <span className="text-[10px]">
+                          {failedImages[asset.id] ? 'Screenshot unavailable' : 'No screenshot'}
+                        </span>
                       </div>
                     )}
 

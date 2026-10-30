@@ -149,6 +149,40 @@ func TestHttpxJSONWithScreenshot(t *testing.T) {
 	}
 }
 
+func TestHttpxNestedScreenshot(t *testing.T) {
+	tool := tools.NewHttpxTool()
+	execCtx := newTestContext("target.com")
+
+	tmpFile := filepath.Join(t.TempDir(), "httpx_output.json")
+	nestedPath := fmt.Sprintf("/app/data/screenshots/%s/screenshot/admin.target.com/hash123.png", execCtx.Target.ID)
+	jsonLine := fmt.Sprintf(`{"url":"https://admin.target.com","input":"admin.target.com","port":"443","status_code":200,"screenshot_path":"%s"}`, nestedPath) + "\n"
+	if err := os.WriteFile(tmpFile, []byte(jsonLine), 0644); err != nil {
+		t.Fatalf("failed to write test file: %v", err)
+	}
+	execCtx.OutputFile = tmpFile
+
+	result, err := tool.Run(execCtx, nil)
+	if err != nil {
+		t.Fatalf("Httpx Run with nested JSON returned error: %v", err)
+	}
+
+	if len(result.Assets) != 1 {
+		t.Fatalf("expected 1 asset, got %d", len(result.Assets))
+	}
+
+	expected := fmt.Sprintf("/api/screenshots/%s/screenshot/admin.target.com/hash123.png", execCtx.Target.ID)
+	hasScreenshotTech := false
+	for _, tech := range result.Assets[0].Technologies {
+		if tech == "Screenshot:"+expected {
+			hasScreenshotTech = true
+			break
+		}
+	}
+	if !hasScreenshotTech {
+		t.Errorf("expected Screenshot tag 'Screenshot:%s', got %v", expected, result.Assets[0].Technologies)
+	}
+}
+
 func TestNaabuParser(t *testing.T) {
 	tool := tools.NewNaabuTool()
 	execCtx := newTestContext("target.com")

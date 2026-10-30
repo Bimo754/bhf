@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -162,5 +163,57 @@ func TestEndpointHandlerListAndSitemap(t *testing.T) {
 
 	if epEnvelope.Data.Total != 2 || len(epEnvelope.Data.Endpoints) != 2 {
 		t.Errorf("expected 2 endpoints in sitemap response, got %d", epEnvelope.Data.Total)
+	}
+}
+
+func TestScreenshotHandler(t *testing.T) {
+	dataDir := t.TempDir()
+	targetID := "test-target-uuid"
+	targetScreenshots := filepath.Join(dataDir, "screenshots", targetID)
+	nestedDir := filepath.Join(targetScreenshots, "screenshot", "sub.example.com")
+	if err := os.MkdirAll(nestedDir, 0755); err != nil {
+		t.Fatalf("failed to create nested dirs: %v", err)
+	}
+
+	testPNG := []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A} // PNG magic bytes
+	testFile := filepath.Join(nestedDir, "abc123hash.png")
+	if err := os.WriteFile(testFile, testPNG, 0644); err != nil {
+		t.Fatalf("failed to write test png: %v", err)
+	}
+
+	r := api.NewRouter(api.RouterConfig{
+		DataDir: dataDir,
+	})
+
+	// Test 1: Exact nested path returns 200 OK
+	req1 := httptest.NewRequest(http.MethodGet, "/api/screenshots/"+targetID+"/screenshot/sub.example.com/abc123hash.png", nil)
+	rec1 := httptest.NewRecorder()
+	r.ServeHTTP(rec1, req1)
+	if rec1.Code != http.StatusOK {
+		t.Errorf("expected status 200 for exact path, got %d", rec1.Code)
+	}
+
+	// Test 2: Fallback direct filename without subdirs returns 200 OK via hash search
+	req2 := httptest.NewRequest(http.MethodGet, "/api/screenshots/"+targetID+"/abc123hash.png", nil)
+	rec2 := httptest.NewRecorder()
+	r.ServeHTTP(rec2, req2)
+	if rec2.Code != http.StatusOK {
+		t.Errorf("expected status 200 for fallback search, got %d", rec2.Code)
+	}
+
+	// Test 3: Path traversal attempt returns 403 Forbidden
+	req3 := httptest.NewRequest(http.MethodGet, "/api/screenshots/../../etc/passwd", nil)
+	rec3 := httptest.NewRecorder()
+	r.ServeHTTP(rec3, req3)
+	if rec3.Code != http.StatusForbidden && rec3.Code != http.StatusNotFound {
+		t.Errorf("expected 403 or 404 for traversal attempt, got %d", rec3.Code)
+	}
+
+	// Test 4: Nonexistent file returns 404 Not Found
+	req4 := httptest.NewRequest(http.MethodGet, "/api/screenshots/"+targetID+"/nonexistent.png", nil)
+	rec4 := httptest.NewRecorder()
+	r.ServeHTTP(rec4, req4)
+	if rec4.Code != http.StatusNotFound {
+		t.Errorf("expected 404 for missing file, got %d", rec4.Code)
 	}
 }

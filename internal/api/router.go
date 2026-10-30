@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -93,11 +94,21 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		// WebSocket streaming
 		api.Get("/ws/scans/{id}/logs", cfg.WSHandler.StreamLogs)
 
-		// Static screenshots file server
+		// Static screenshots file server with intelligent path & hash fallback
 		if cfg.DataDir != "" {
 			screenshotsDir := filepath.Join(cfg.DataDir, "screenshots")
 			_ = os.MkdirAll(screenshotsDir, 0755)
-			api.Handle("/screenshots/*", http.StripPrefix("/api/screenshots/", http.FileServer(http.Dir(screenshotsDir))))
+			_ = filepath.WalkDir(screenshotsDir, func(path string, d os.DirEntry, err error) error {
+				if err == nil {
+					if d.IsDir() {
+						_ = os.Chmod(path, 0755)
+					} else {
+						_ = os.Chmod(path, 0644)
+					}
+				}
+				return nil
+			})
+			api.Handle("/screenshots/*", screenshotHandler(screenshotsDir))
 		}
 	})
 
@@ -120,3 +131,60 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 	return r
 }
+
+// screenshotHandler provides a secure, fallback-aware file server for visual screenshots.
+// It serves exact relative paths if they exist, or falls back to resolving by filename within
+// the target's screenshot tree (supporting both flat and nested httpx -srd structures).
+func screenshotHandler(screenshotsDir string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		reqPath := strings.TrimPrefix(r.URL.Path, "/api/screenshots/")
+		reqPath = strings.TrimPrefix(reqPath, "/screenshots/")
+		cleanPath := filepath.Clean(reqPath)
+
+		// Directory traversal guard
+		if cleanPath == "." || strings.HasPrefix(cleanPath, "..") || strings.Contains(cleanPath, "../") || strings.Contains(cleanPath, `..\`) {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		fullPath := filepath.Join(screenshotsDir, cleanPath)
+
+		// 1. Direct match exists and is a file
+		if fi, err := os.Stat(fullPath); err == nil && !fi.IsDir() {
+			w.Header().Set("Cache-Control", "public, max-age=86400")
+			http.ServeFile(w, r, fullPath)
+			return
+		}
+
+		// 2. Fallback: search within target directory by filename
+		parts := strings.Split(cleanPath, string(filepath.Separator))
+		if len(parts) >= 2 {
+			targetID := parts[0]
+			targetDir := filepath.Join(screenshotsDir, targetID)
+			fileName := filepath.Base(cleanPath)
+
+			var foundPath string
+			if fi, err := os.Stat(targetDir); err == nil && fi.IsDir() {
+				_ = filepath.WalkDir(targetDir, func(p string, d os.DirEntry, err error) error {
+					if err != nil {
+						return nil
+					}
+					if !d.IsDir() && d.Name() == fileName {
+						foundPath = p
+						return filepath.SkipAll
+					}
+					return nil
+				})
+			}
+
+			if foundPath != "" {
+				w.Header().Set("Cache-Control", "public, max-age=86400")
+				http.ServeFile(w, r, foundPath)
+				return
+			}
+		}
+
+		http.NotFound(w, r)
+	}
+}
+

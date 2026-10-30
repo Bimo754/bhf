@@ -109,6 +109,13 @@ func (t *HttpxTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, e
 	var assets []models.Asset
 	now := time.Now().UTC()
 
+	dataDir := os.Getenv("BHF_DATA_DIR")
+	if dataDir == "" {
+		dataDir = "data"
+	}
+	screenshotDir := filepath.Join(dataDir, "screenshots", execCtx.Target.ID)
+	screenshotIndex := loadScreenshotIndex(filepath.Join(screenshotDir, "screenshot", "index_screenshot.txt"))
+
 	// 1. Try reading the structured JSON file if it exists
 	if execCtx.OutputFile != "" {
 		if f, err := os.Open(execCtx.OutputFile); err == nil {
@@ -137,12 +144,40 @@ func (t *HttpxTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, e
 					}
 
 					techs := item.Tech
+					var screenshotRel string
 					if item.ScreenshotPath != "" {
-						baseName := filepath.Base(item.ScreenshotPath)
-						if baseName != "" && baseName != "." {
-							screenshotURI := fmt.Sprintf("/api/screenshots/%s/%s", execCtx.Target.ID, baseName)
-							techs = append(techs, "Screenshot:"+screenshotURI)
+						rel := item.ScreenshotPath
+						marker := execCtx.Target.ID + "/"
+						markerBackslash := execCtx.Target.ID + `\`
+						if idx := strings.Index(rel, marker); idx != -1 {
+							rel = rel[idx+len(marker):]
+						} else if idx := strings.Index(rel, markerBackslash); idx != -1 {
+							rel = rel[idx+len(markerBackslash):]
+						} else {
+							targetScreenshotDir := filepath.Join(dataDir, "screenshots", execCtx.Target.ID)
+							if r, err := filepath.Rel(targetScreenshotDir, rel); err == nil && !strings.HasPrefix(r, "..") {
+								rel = r
+							} else {
+								rel = filepath.Base(rel)
+							}
 						}
+						screenshotRel = filepath.ToSlash(strings.TrimPrefix(rel, "/"))
+					}
+
+					// Fallback to index_screenshot.txt if item.ScreenshotPath was omitted
+					if screenshotRel == "" && len(screenshotIndex) > 0 {
+						if indexed, ok := screenshotIndex[item.URL]; ok {
+							screenshotRel = indexed
+						} else if indexed, ok := screenshotIndex[strings.TrimRight(item.URL, "/")]; ok {
+							screenshotRel = indexed
+						} else if indexed, ok := screenshotIndex[host]; ok {
+							screenshotRel = indexed
+						}
+					}
+
+					if screenshotRel != "" && screenshotRel != "." {
+						screenshotURI := fmt.Sprintf("/api/screenshots/%s/%s", execCtx.Target.ID, screenshotRel)
+						techs = append(techs, "Screenshot:"+screenshotURI)
 					}
 
 					assets = append(assets, models.Asset{
@@ -164,6 +199,18 @@ func (t *HttpxTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, e
 			_ = os.Remove(execCtx.OutputFile + ".targets.txt")
 		}
 	}
+
+	// Enforce 0755 on directories and 0644 on files so screenshots are accessible across environments
+	_ = filepath.WalkDir(screenshotDir, func(path string, d os.DirEntry, err error) error {
+		if err == nil {
+			if d.IsDir() {
+				_ = os.Chmod(path, 0755)
+			} else {
+				_ = os.Chmod(path, 0644)
+			}
+		}
+		return nil
+	})
 
 	// 2. Fallback to parsing rawOutput lines if file was empty
 	if len(assets) == 0 {
@@ -187,4 +234,34 @@ func (t *HttpxTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, e
 	}
 
 	return Result{Assets: assets}, nil
+}
+
+// loadScreenshotIndex parses httpx's index_screenshot.txt into a lookup map from URL/Host to relative screenshot subpath.
+func loadScreenshotIndex(indexPath string) map[string]string {
+	m := make(map[string]string)
+	f, err := os.Open(indexPath)
+	if err != nil {
+		return m
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+		parts := strings.Fields(line)
+		if len(parts) >= 2 {
+			subpath := parts[0]
+			targetURL := parts[1]
+			rel := filepath.ToSlash(filepath.Join("screenshot", subpath))
+			m[targetURL] = rel
+			m[strings.TrimRight(targetURL, "/")] = rel
+			if parsed, err := url.Parse(targetURL); err == nil && parsed.Hostname() != "" {
+				m[parsed.Hostname()] = rel
+			}
+		}
+	}
+	return m
 }
