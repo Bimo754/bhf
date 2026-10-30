@@ -16,7 +16,7 @@ Track defects, crashes, parser anomalies, or UI issues discovered during live ex
 | BUG-004 | 2026-10-30 | UI / Notifications | Low | Scan stop failure toast message is truncated preventing operator from reading error details | Resolved |
 | BUG-005 | 2026-10-30 | Content Discovery | High | Arjun stability probe raises unhandled AttributeError on string response | Resolved |
 | BUG-006 | 2026-10-30 | Vulnerability Assessment | High | Nuclei scan fails immediately with 'no templates provided for scan' due to missing /root/nuclei-templates | Open |
-| BUG-007 | 2026-10-30 | Tooling / Subdomain Enum | Low | Remove alterx tool integration from framework | Open |
+| BUG-007 | 2026-10-30 | Tooling / Subdomain Enum | Low | Remove alterx and asnmap tool integrations from framework | Resolved |
 | BUG-008 | 2026-10-30 | Live HTTP Probing / UI | Medium | Visual Gallery shows placeholder 'no screenshots', duplicate redirecting hosts, and failed captures | Open |
 
 *Status Values*: `Open`, `Investigating`, `In Progress`, `Resolved`, `Closed`
@@ -93,17 +93,19 @@ Track defects, crashes, parser anomalies, or UI issues discovered during live ex
   - Pre-install or update `nuclei-templates` during Docker build (`RUN nuclei -update-templates` or clone into `/root/nuclei-templates`).
   - Ensure template path or `-update-templates` flag is available so Nuclei can locate valid templates before scanning.
 
-#### [BUG-007] Remove "alterx" Tool Integration
+#### [BUG-007] Remove "alterx" and "asnmap" Tool Integrations
 - **Date**: 2026-10-30
 - **Recon Stage**: Tooling & Subdomain Enumeration
-- **Tool Involved**: `alterx`
-- **Symptom**: Operator requested deprecation and removal of the `alterx` application/tool integration from the BHF platform.
-- **Root Cause / Justification**: Subdomain permutation via `alterx` is no longer desired as an integrated tool in the active tool suite.
-- **Target Resolution**: (Tracked, do not fix yet per operator request)
-  - Remove `internal/tools/alterx.go`.
-  - Unregister `alterx` from tool registry in `internal/tools/catalog.go`.
-  - Remove `alterx` installation from `docker/Dockerfile`.
-  - Clean up any frontend references in `RunConfigModal.tsx` and documentation.
+- **Tools Involved**: `alterx`, `asnmap`
+- **Symptom**: Operator requested deprecation and complete removal of the `alterx` and `asnmap` applications/tool integrations from the BHF platform.
+- **Root Cause / Justification**: Subdomain permutation via `alterx` and ASN mapping via `asnmap` (which required external PDCP API keys) are no longer desired in the active recon suite.
+- **Resolution**:
+  - Removed `internal/tools/alterx.go` and `internal/tools/asnmap.go`.
+  - Unregistered `alterx` and `asnmap` from tool registry in `cmd/bhf-server/main.go`.
+  - Removed parser unit tests from `internal/tools/tools_test.go`.
+  - Removed binary build instructions from `docker/Dockerfile`.
+  - Removed tool references from `web/src/views/ToolsView.tsx` methodology stages and pipeline lists.
+  - Updated documentation across `ARCHITECTURE.md` and `CHANGELOG.md`.
 
 #### [BUG-008] Visual Gallery Screenshot Failures, Placeholders, and Canonical Duplicates
 - **Date**: 2026-10-30

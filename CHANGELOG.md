@@ -58,6 +58,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - "Run Full Recon Pipeline" coordinator with optional crawl feedback loop re-probing newly discovered subdomains with `httpx` after crawling & JS mining before fuzzing and vulnerability scanning.
   - Thread-safe scan queue advancement and abort controls in `App.tsx`.
 
+### Removed
+- Deprecated and removed `alterx` (subdomain permutations) and `asnmap` (network range/ASN mapping) tools from the framework backend, tool registry, Docker container build, pipeline stages, and test suites per operator request (`BUG-007`).
+
 ### Changed
 - Standardized UI to developer-grade GitHub Dark theme (`#0d1117`) with zero AI glowing neon hues and zero emojis.
 - Enforced strict Single Responsibility Principle across all Go backend and TypeScript frontend files.

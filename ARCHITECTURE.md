@@ -108,9 +108,7 @@ bhf/
 │   │   ├── scan.go               # Scan execution session entity
 │   │   └── target.go             # Bug bounty target scope entity
 │   └── tools/                    # Security tool integrations
-│       ├── alterx.go             # Alterx subdomain permutation generator
 │       ├── arjun.go              # Arjun parameter discovery tool (uv isolation)
-│       ├── asnmap.go             # Asnmap ASN and CIDR mapping tool
 │       ├── assetfinder.go        # Assetfinder runner and parser
 │       ├── corsy.go              # Corsy CORS misconfiguration scanner (uv isolation)
 │       ├── dnsx.go               # DNSx DNS resolution and A/CNAME record parser
@@ -161,8 +159,6 @@ bhf/
 │      - `subfinder`: Passive DNS and multi-source public query.
 │      - `assetfinder`: Public archive and asset discovery.
 │      - `theharvester`: Search engine and certificate log scraping inside an isolated virtual environment (`uv`).
-│      - `alterx`: Fast rule-based subdomain wordlist permutation generator.
-│      - `asnmap`: Network range, ASN, and CIDR block mapping.
 │      - `dnsx`: Multi-resolver DNS resolution, wildcard filtering, and IP extraction.
 │   2. **Port and Network Scanning**:
 │      - `naabu`: Fast SYN/Connect port scanning across discovered hostnames to identify exposed non-standard services.

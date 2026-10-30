@@ -36,7 +36,7 @@ const METHODOLOGY_STAGES: MethodologyStage[] = [
   {
     title: 'Subdomain & OSINT Enumeration',
     description: 'Map external perimeter, discover subdomains, and actively resolve DNS records.',
-    toolNames: ['asnmap', 'subfinder', 'assetfinder', 'theharvester', 'alterx', 'dnsx'],
+    toolNames: ['subfinder', 'assetfinder', 'theharvester', 'dnsx'],
   },
   {
     title: 'Port & Network Scanning',
@@ -85,7 +85,7 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
   };
 
   const fullPipelineTools = useMemo(() => {
-    const s1 = ['asnmap', 'subfinder', 'assetfinder', 'theharvester', 'alterx', 'dnsx'];
+    const s1 = ['subfinder', 'assetfinder', 'theharvester', 'dnsx'];
     const s2 = ['naabu'];
     const s3 = ['httpx', 'tlsx', 'wafw00f', 'gowitness'];
     const s4 = ['katana', 'gau', 'uro', 'jsluice'];

@@ -28,9 +28,7 @@ RUN go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest 
     go install -v github.com/tomnomnom/assetfinder@latest && \
     go install -v github.com/lc/gau/v2/cmd/gau@latest && \
     go install -v github.com/ffuf/ffuf/v2@latest && \
-    go install -v github.com/projectdiscovery/alterx/cmd/alterx@latest && \
     go install -v github.com/PentestPad/subzy@latest && \
-    go install -v github.com/projectdiscovery/asnmap/cmd/asnmap@latest && \
     go install -v github.com/projectdiscovery/tlsx/cmd/tlsx@latest && \
     CGO_ENABLED=1 go install -v github.com/BishopFox/jsluice/cmd/jsluice@latest && \
     go install -v github.com/devploit/nomore403@latest && \
