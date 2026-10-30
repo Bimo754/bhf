@@ -74,11 +74,8 @@ func (t *TlsxTool) DefaultArgs(target *models.Target, hosts []string, liveURLs [
 	if err := os.WriteFile(listFile, []byte(strings.Join(inputTargets, "\n")), 0644); err == nil {
 		return []string{
 			"-l", listFile,
-			"-san",
-			"-cn",
 			"-jarm",
 			"-json",
-			"-o", outputFile,
 			"-c", "40",
 			"-silent",
 		}
@@ -86,11 +83,8 @@ func (t *TlsxTool) DefaultArgs(target *models.Target, hosts []string, liveURLs [
 
 	return []string{
 		"-u", cleanRoot,
-		"-san",
-		"-cn",
 		"-jarm",
 		"-json",
-		"-o", outputFile,
 		"-c", "40",
 		"-silent",
 	}

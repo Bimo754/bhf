@@ -58,7 +58,6 @@ func (t *AsnmapTool) DefaultArgs(target *models.Target, hosts []string, liveURLs
 	return []string{
 		"-d", cleanRoot,
 		"-json",
-		"-o", outputFile,
 		"-silent",
 	}
 }
@@ -142,6 +141,9 @@ func (t *AsnmapTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, 
 	// 2. Parse stdout lines fallback
 	if len(assets) == 0 {
 		for _, line := range rawOutput {
+			if strings.Contains(strings.ToLower(line), "api key") || strings.Contains(line, "PDCP") {
+				return Result{}, fmt.Errorf("asnmap requires a ProjectDiscovery Cloud Platform (PDCP) API key. Set PDCP_API_KEY in docker-compose.yml or your environment (sign up at https://cloud.projectdiscovery.io)")
+			}
 			line = strings.TrimSpace(line)
 			if line == "" || strings.HasPrefix(line, "[") {
 				continue

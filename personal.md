@@ -13,6 +13,7 @@ Track defects, crashes, parser anomalies, or UI issues discovered during live ex
 | BUG-001 | 2026-10-26 | Core | Low | Terminal autoscroll pauses when clicking inside container | Closed |
 | BUG-002 | 2026-10-26 | Vulnerability Assessment | High | Nuclei scan duration takes an excessive amount of time to complete against multiple targets | Open |
 | BUG-003 | 2026-10-26 | Discovered Assets / UI | Medium | Discovered Assets pagination shows empty intermediate pages when filtering by Live Web | Open |
+| BUG-004 | 2026-10-30 | UI / Notifications | Low | Scan stop failure toast message is truncated preventing operator from reading error details | Open |
 
 *Status Values*: `Open`, `Investigating`, `In Progress`, `Resolved`, `Closed`
 
@@ -42,7 +43,13 @@ Track defects, crashes, parser anomalies, or UI issues discovered during live ex
   - If page 1 contains 50 subdomains with no live status code, the client-side filter yields 0 rows, rendering a blank table for that page while the pagination counter still reflects total database assets.
 - **Target Resolution**:
   - Move filter chips (`live`, `2xx`, `3xx`, `errors`, `priority`) to server-side query parameters in `GET /api/assets/target/{targetID}?filter=live`.
-  - Let SQLite calculate total matching records and apply `WHERE` clauses prior to `LIMIT` and `OFFSET`.
+#### [BUG-004] Scan Stop Failure Truncated Toast Message
+- **Date**: 2026-10-30
+- **Recon Stage**: UI & Process Controls
+- **Component**: `Toast.tsx`
+- **Symptom**: When attempting to cancel or stop a scan that has already finished or failed, the UI renders an error toast notification whose message text is truncated with CSS ellipsis (`truncate`), hiding the full error explanation from the operator.
+- **Status**: Open (tracked, do not fix yet per operator request).
+- **Target Resolution**: Allow toast messages to wrap or expand on hover/click so long error messages can be fully read without breaking container boundaries.
 
 ---
 
@@ -64,6 +71,7 @@ Track capabilities, tool integrations, and workflow improvements that increase b
 | FEAT-010 | 2026-10-26 | Workflow Orchestration| Automated multi-stage pipeline chaining | 1-click chained scans across stages with operator approval | Backlog |
 | FEAT-011 | 2026-10-27 | Execution Engine | Subprocess group isolation & emergency kill switch | Prevents orphaned processes; allows 1-click abort of all running scans | Backlog |
 | FEAT-012 | 2026-10-27 | UI & Notifications | Persistent notification drawer & OS desktop bread alerts | Notifies hunter when scans complete/stop while working in other windows | Backlog |
+| FEAT-013 | 2026-10-30 | Discovered Assets / UI | Dedicated Priority Score & Star Rating Column | Moves priority stars and score values out of the host cell into a dedicated column for easier sorting and visual triage | Planned |
 
 *Status Values*: `Idea`, `Planned`, `In Progress`, `Implemented`, `Rejected`
 
@@ -145,6 +153,15 @@ Track capabilities, tool integrations, and workflow improvements that increase b
 - **Architecture**:
   - Web Desktop Notifications: Integrate HTML5 Web Notifications API (`Notification.requestPermission()`) in `web/src/services/` to display native OS notification banners when scans finish, fail, or stop while the browser tab is inactive or minimized.
   - In-App Notification Center: Add an accessible notification drawer/tray in `web/src/components/` logging all scan completion/stop events and critical alerts with 1-click navigation to the scan console or discovered findings.
+
+#### [FEAT-013] Dedicated Priority Score and Star Rating Column
+- **Methodology Stage**: Discovered Assets / Web UI
+- **Hunter Justification**: When triaging high-volume asset inventories, hunters prioritize targets based on priority score and star ratings (e.g. dev, staging, admin, login portals). Currently, star ratings are rendered inline within the Host column text, making visual scanning across rows cluttered and preventing direct sorting by priority rank.
+- **Architecture**:
+  - Table Structure: In `web/src/components/AssetTable.tsx`, introduce a dedicated "Priority" column adjacent to the Host column.
+  - Rating Badge: Render priority stars (`★`) alongside numerical score badges with color-coded priority tiers (High `#f0883e`, Medium `#d29922`, Low `#8b949e`).
+  - Table Sorting: Enable 1-click column header sorting (`asc` / `desc`) on `asset.priority_score`.
+  - Backend Alignment: Ensure `GET /api/assets/target/{targetID}?sort=priority&order=desc` supports direct SQL ordering by `priority_score`.
 
 ---
 

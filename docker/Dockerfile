@@ -73,11 +73,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libc6-dev \
     chromium \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* && \
+    ln -sf /usr/bin/chromium /usr/bin/google-chrome
+
+# Download nomore403 fuzzing payloads
+RUN git clone --depth 1 https://github.com/devploit/nomore403.git /tmp/nomore403 && \
+    mkdir -p /opt/nomore403 && \
+    cp -r /tmp/nomore403/payloads /opt/nomore403/payloads && \
+    rm -rf /tmp/nomore403
 
 WORKDIR /app
 
 ENV PATH="/root/.local/bin:/usr/local/bin:$PATH"
+ENV PYTHONUNBUFFERED=1
 
 # Copy uv (fast Python package runner)
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv

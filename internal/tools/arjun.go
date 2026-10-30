@@ -75,14 +75,14 @@ func (t *ArjunTool) DefaultArgs(target *models.Target, hosts []string, liveURLs 
 		baseArgs = []string{
 			"-i", listFile,
 			"-t", "5",
-			"-m", "GET,POST",
+			"-m", "GET",
 			"-oJ", outputFile,
 		}
 	} else {
 		baseArgs = []string{
 			"-u", targets[0],
 			"-t", "5",
-			"-m", "GET,POST",
+			"-m", "GET",
 			"-oJ", outputFile,
 		}
 	}

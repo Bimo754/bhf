@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"fmt"
 	"net/url"
 	"os"
 	"os/exec"
@@ -64,27 +65,44 @@ func (t *GowitnessTool) DefaultArgs(target *models.Target, hosts []string, liveU
 		targets = append(targets, "https://"+cleanRoot)
 	}
 
-	screenshotDir := filepath.Join("data", "screenshots", target.ID)
+	dataDir := os.Getenv("BHF_DATA_DIR")
+	if dataDir == "" {
+		dataDir = "data"
+	}
+	screenshotDir := filepath.Join(dataDir, "screenshots", target.ID)
 	_ = os.MkdirAll(screenshotDir, 0755)
+
+	var chromeArgs []string
+	if p, err := exec.LookPath("chromium"); err == nil {
+		chromeArgs = []string{"--chrome-path", p}
+	} else if p, err := exec.LookPath("google-chrome"); err == nil {
+		chromeArgs = []string{"--chrome-path", p}
+	} else if _, err := os.Stat("/usr/bin/chromium"); err == nil {
+		chromeArgs = []string{"--chrome-path", "/usr/bin/chromium"}
+	}
 
 	listFile := outputFile + ".targets.txt"
 	if err := os.WriteFile(listFile, []byte(strings.Join(targets, "\n")), 0644); err == nil {
-		return []string{
+		base := []string{
 			"scan",
 			"file",
 			"-f", listFile,
 			"--screenshot-path", screenshotDir,
+			"--write-stdout",
 			"--delay", "2",
 		}
+		return append(base, chromeArgs...)
 	}
 
-	return []string{
+	base := []string{
 		"scan",
 		"single",
 		"-u", targets[0],
 		"--screenshot-path", screenshotDir,
+		"--write-stdout",
 		"--delay", "2",
 	}
+	return append(base, chromeArgs...)
 }
 
 func (t *GowitnessTool) IsInstalled() bool {
@@ -97,6 +115,33 @@ func (t *GowitnessTool) Run(execCtx ExecutionContext, rawOutput []string) (Resul
 	seen := make(map[string]bool)
 	now := time.Now().UTC()
 	cleanRoot := CleanDomain(execCtx.Target.Domain)
+
+	dataDir := os.Getenv("BHF_DATA_DIR")
+	if dataDir == "" {
+		dataDir = "data"
+	}
+	screenshotDir := filepath.Join(dataDir, "screenshots", execCtx.Target.ID)
+	var screenshotFiles []string
+	if entries, err := os.ReadDir(screenshotDir); err == nil {
+		for _, e := range entries {
+			if !e.IsDir() && (strings.HasSuffix(e.Name(), ".jpeg") || strings.HasSuffix(e.Name(), ".jpg") || strings.HasSuffix(e.Name(), ".png")) {
+				screenshotFiles = append(screenshotFiles, e.Name())
+			}
+		}
+	}
+
+	findScreenshotURL := func(host string) string {
+		for _, f := range screenshotFiles {
+			normalized := strings.ReplaceAll(strings.ToLower(f), "-", ".")
+			if strings.Contains(normalized, host) {
+				return fmt.Sprintf("/api/screenshots/%s/%s", execCtx.Target.ID, f)
+			}
+		}
+		if len(screenshotFiles) == 1 {
+			return fmt.Sprintf("/api/screenshots/%s/%s", execCtx.Target.ID, screenshotFiles[0])
+		}
+		return ""
+	}
 
 	addScreenshotAsset := func(targetURL string) {
 		targetURL = strings.TrimSpace(targetURL)
@@ -115,6 +160,11 @@ func (t *GowitnessTool) Run(execCtx ExecutionContext, rawOutput []string) (Resul
 		}
 		seen[targetURL] = true
 
+		techs := []string{"Visual Screenshot"}
+		if sURL := findScreenshotURL(host); sURL != "" {
+			techs = append(techs, "Screenshot:"+sURL)
+		}
+
 		assets = append(assets, models.Asset{
 			ID:           uuid.New().String(),
 			TargetID:     execCtx.Target.ID,
@@ -122,7 +172,7 @@ func (t *GowitnessTool) Run(execCtx ExecutionContext, rawOutput []string) (Resul
 			Host:         host,
 			URL:          targetURL,
 			Title:        "Visual Screenshot Captured",
-			Technologies: []string{"Visual Screenshot"},
+			Technologies: techs,
 			CreatedAt:    now,
 		})
 	}

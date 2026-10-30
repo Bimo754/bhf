@@ -1,10 +1,13 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -136,9 +139,12 @@ func (h *ScanHandler) executeScanAsync(
 	liveURLs []string,
 	outputFile string,
 ) {
-	defer h.dispatcher.Unregister(scan.ID)
+	var stdin io.Reader
+	if targetData, err := os.ReadFile(outputFile + ".targets.txt"); err == nil && len(targetData) > 0 {
+		stdin = bytes.NewReader(targetData)
+	}
 
-	rawOutput, runErr := h.runner.Run(ctx, scan.ID, tool.BinaryName(), args)
+	rawOutput, runErr := h.runner.RunWithStdin(ctx, scan.ID, tool.BinaryName(), args, stdin)
 
 	now := time.Now().UTC()
 	var finalStatus models.ScanStatus = models.StatusCompleted

@@ -80,20 +80,17 @@ func (t *JsluiceTool) DefaultArgs(target *models.Target, hosts []string, liveURL
 		jsTargets = append(jsTargets, "https://"+cleanRoot)
 	}
 
-	listFile := outputFile + ".targets.txt"
-	if err := os.WriteFile(listFile, []byte(strings.Join(jsTargets, "\n")), 0644); err == nil {
-		return []string{
-			"urls",
-			"--resolve-paths",
-			listFile,
-		}
+	args := []string{
+		"urls",
+		"--resolve-paths", "https://" + cleanRoot,
 	}
 
-	return []string{
-		"urls",
-		"--resolve-paths",
-		jsTargets[0],
+	// Limit targets to first 50 to avoid overly long command lines
+	if len(jsTargets) > 50 {
+		jsTargets = jsTargets[:50]
 	}
+
+	return append(args, jsTargets...)
 }
 
 func (t *JsluiceTool) IsInstalled() bool {

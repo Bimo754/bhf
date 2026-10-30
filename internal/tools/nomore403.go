@@ -52,10 +52,17 @@ func (t *Nomore403Tool) DefaultArgs(target *models.Target, hosts []string, liveU
 		targetURL = "https://" + hosts[0]
 	}
 
-	return []string{
+	args := []string{
 		"-u", targetURL,
-		"-max-rate", "30",
+		"-m", "30",
+		"--no-banner",
 	}
+
+	if _, err := os.Stat("/opt/nomore403/payloads"); err == nil {
+		args = append(args, "-f", "/opt/nomore403/payloads")
+	}
+
+	return args
 }
 
 func (t *Nomore403Tool) IsInstalled() bool {

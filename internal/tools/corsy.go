@@ -80,8 +80,9 @@ func (t *CorsyTool) DefaultArgs(target *models.Target, hosts []string, liveURLs 
 
 	var baseArgs []string
 	listFile := outputFile + ".targets.txt"
-	if err := os.WriteFile(listFile, []byte(strings.Join(targets, "\n")), 0644); err == nil {
+	if err := os.WriteFile(listFile, []byte(strings.Join(targets, "\n")), 0644); err == nil && len(targets) > 1 {
 		baseArgs = []string{
+			"-u", targets[0],
 			"-i", listFile,
 			"-t", "10",
 			"-q",

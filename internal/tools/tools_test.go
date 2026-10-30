@@ -74,7 +74,7 @@ func TestKatanaParser(t *testing.T) {
 	rawOutput := []string{
 		"https://target.com/api/v1/users",
 		"https://sub.target.com/login",
-		"https://sub.target.com/login", // Duplicate
+		"https://sub.target.com/login",        // Duplicate
 		"https://thirdparty.com/analytics.js", // Out of scope
 		"not-a-url",
 	}
@@ -431,9 +431,3 @@ func TestGowitnessParser(t *testing.T) {
 		t.Errorf("expected Title 'Visual Screenshot Captured', got %s", result.Assets[0].Title)
 	}
 }
-
-
-
-
-
-

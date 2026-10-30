@@ -82,15 +82,14 @@ func (t *S3ScannerTool) DefaultArgs(target *models.Target, hosts []string, liveU
 	listFile := outputFile + ".buckets.txt"
 	if err := os.WriteFile(listFile, []byte(strings.Join(candidates, "\n")), 0644); err == nil {
 		return []string{
-			"scan",
-			"-f", listFile,
-			"-o", outputFile,
+			"-bucket-file", listFile,
+			"-json",
 		}
 	}
 
 	return []string{
-		"scan",
-		"--bucket", rootPrefix,
+		"-bucket", rootPrefix,
+		"-json",
 	}
 }
 
@@ -151,7 +150,7 @@ func (t *S3ScannerTool) Run(execCtx ExecutionContext, rawOutput []string) (Resul
 			Host:          host,
 			URL:           bURL,
 			Title:         fmt.Sprintf("Cloud Bucket: %s (%s)", name, provider),
-			Technologies: []string{"Cloud Storage:" + provider},
+			Technologies:  []string{"Cloud Storage:" + provider},
 			PriorityScore: 45,
 			CreatedAt:     now,
 		})
@@ -192,6 +191,35 @@ func (t *S3ScannerTool) Run(execCtx ExecutionContext, rawOutput []string) (Resul
 	// 2. Parse stdout stream lines
 	for _, line := range rawOutput {
 		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "{") {
+			var logEntry struct {
+				Bucket struct {
+					Name              string `json:"name"`
+					Exists            int    `json:"exists"`
+					Provider          string `json:"provider"`
+					PermAllUsersRead  int    `json:"perm_all_users_read"`
+					PermAllUsersWrite int    `json:"perm_all_users_write"`
+				} `json:"bucket"`
+			}
+			if err := json.Unmarshal([]byte(line), &logEntry); err == nil && logEntry.Bucket.Name != "" {
+				if logEntry.Bucket.Exists == 1 || logEntry.Bucket.PermAllUsersRead == 1 || logEntry.Bucket.PermAllUsersWrite == 1 {
+					perm := "exists"
+					if logEntry.Bucket.PermAllUsersRead == 1 {
+						perm = "read"
+					}
+					if logEntry.Bucket.PermAllUsersWrite == 1 {
+						perm = "write"
+					}
+					provider := logEntry.Bucket.Provider
+					if provider == "" {
+						provider = "aws"
+					}
+					addBucketFinding(logEntry.Bucket.Name, strings.ToUpper(provider), perm, "")
+				}
+				continue
+			}
+		}
+
 		if strings.Contains(line, "|") && (strings.Contains(line, "exists") || strings.Contains(line, "read")) {
 			parts := strings.Split(line, "|")
 			if len(parts) >= 2 {

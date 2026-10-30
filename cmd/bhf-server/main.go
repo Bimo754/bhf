@@ -112,6 +112,7 @@ func main() {
 		WSHandler:      wsHandler,
 		MCPServer:      mcpServer,
 		StaticFS:       staticFS,
+		DataDir:        cfg.DataDir,
 	})
 
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ExternalLink, Search, ChevronLeft, ChevronRight, RefreshCw, Copy, Check, Download, Globe } from 'lucide-react';
+import { ExternalLink, Search, ChevronLeft, ChevronRight, RefreshCw, Copy, Check, Download, Globe, Camera, X } from 'lucide-react';
 import { Asset, PaginatedAssets } from '../types/asset';
 import { Button } from './Button';
 
@@ -27,6 +27,7 @@ export const AssetTable: React.FC<AssetTableProps> = ({
   const [localSearch, setLocalSearch] = useState(searchQuery);
   const [activeFilter, setActiveFilter] = useState<FilterChip>('all');
   const [copiedAction, setCopiedAction] = useState<'hosts' | 'urls' | null>(null);
+  const [previewScreenshot, setPreviewScreenshot] = useState<string | null>(null);
 
   const totalPages = Math.ceil(data.total / data.limit) || 1;
 
@@ -275,36 +276,55 @@ export const AssetTable: React.FC<AssetTableProps> = ({
                     {/* Technologies */}
                     <td className="py-2 px-3">
                       <div className="flex flex-wrap gap-1 max-w-xs">
-                        {asset.technologies && asset.technologies.length > 0 ? (
-                          asset.technologies.map((t, idx) => (
-                            <span
-                              key={idx}
-                              className="bg-[#0d1117] border border-[#30363d] text-zinc-300 text-[10px] px-1.5 py-0.5 rounded"
-                            >
-                              {t}
-                            </span>
-                          ))
+                        {asset.technologies && asset.technologies.filter((t) => !t.startsWith('Screenshot:')).length > 0 ? (
+                          asset.technologies
+                            .filter((t) => !t.startsWith('Screenshot:'))
+                            .map((t, idx) => (
+                              <span
+                                key={idx}
+                                className="bg-[#0d1117] border border-[#30363d] text-zinc-300 text-[10px] px-1.5 py-0.5 rounded"
+                              >
+                                {t}
+                              </span>
+                            ))
                         ) : (
                           <span className="text-zinc-600">-</span>
                         )}
                       </div>
                     </td>
 
-                    {/* Link Action */}
+                    {/* Actions */}
                     <td className="py-2 px-3 text-right">
-                      {liveURL ? (
-                        <a
-                          href={liveURL}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center p-1 rounded hover:bg-[#30363d] text-zinc-400 hover:text-blue-400"
-                          title="Open in new browser tab"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
-                      ) : (
-                        <span className="text-zinc-700">-</span>
-                      )}
+                      <div className="inline-flex items-center space-x-1">
+                        {(() => {
+                          const sTag = asset.technologies?.find((t) => t.startsWith('Screenshot:'));
+                          const sUrl = sTag ? sTag.replace('Screenshot:', '') : null;
+                          if (!sUrl) return null;
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => setPreviewScreenshot(sUrl)}
+                              className="p-1 rounded hover:bg-[#30363d] text-zinc-400 hover:text-emerald-400 transition"
+                              title="View web screenshot"
+                            >
+                              <Camera className="w-3.5 h-3.5" />
+                            </button>
+                          );
+                        })()}
+                        {liveURL ? (
+                          <a
+                            href={liveURL}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1 rounded hover:bg-[#30363d] text-zinc-400 hover:text-blue-400 transition"
+                            title="Open in new browser tab"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        ) : (
+                          <span className="text-zinc-700">-</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -341,6 +361,33 @@ export const AssetTable: React.FC<AssetTableProps> = ({
           </Button>
         </div>
       </div>
+
+      {/* Screenshot Preview Modal */}
+      {previewScreenshot && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+          <div className="relative bg-[#161b22] border border-[#30363d] rounded-lg max-w-4xl w-full p-4 shadow-2xl flex flex-col space-y-3 font-mono">
+            <div className="flex items-center justify-between border-b border-[#30363d] pb-2">
+              <div className="flex items-center space-x-2">
+                <Camera className="w-4 h-4 text-emerald-400" />
+                <h4 className="text-xs font-semibold text-zinc-200">Visual Screenshot Preview</h4>
+              </div>
+              <button
+                onClick={() => setPreviewScreenshot(null)}
+                className="p-1 rounded text-zinc-400 hover:text-white hover:bg-[#21262d] transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="overflow-auto max-h-[75vh] flex items-center justify-center bg-[#0d1117] rounded border border-[#30363d] p-2">
+              <img
+                src={previewScreenshot}
+                alt="Visual Reconnaissance Screenshot"
+                className="max-w-full h-auto object-contain rounded"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

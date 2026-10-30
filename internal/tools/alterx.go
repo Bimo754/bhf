@@ -60,7 +60,6 @@ func (t *AlterxTool) DefaultArgs(target *models.Target, hosts []string, liveURLs
 		return []string{
 			"-l", listFile,
 			"-en",
-			"-o", outputFile,
 			"-silent",
 		}
 	}

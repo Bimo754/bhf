@@ -53,6 +53,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Corrected Subzy repository import path to `github.com/PentestPad/subzy` in tools-builder container stage.
 - Resolved jsluice module path casing (`github.com/BishopFox/jsluice`) and enabled CGO compilation for tree-sitter bindings.
 - Fixed frontend runaway re-render and WebSocket reconnection storm in `App.tsx` by using refs for asynchronous callbacks and scoping effect dependencies to `activeScanId`.
+- Fixed real-time unbuffered execution across Python utilities (`wafw00f`, `arjun`, `corsy`, `theHarvester`) by setting `PYTHONUNBUFFERED=1` in subprocess runners and Docker environments.
+- Implemented `scanLinesOrCarriageReturn` in `runner.go` to split on carriage returns (`\r`), enabling live streaming for interactive terminal progress bars (`arjun`, `gowitness`, `katana`, `nuclei`, `ffuf`).
+- Fixed silent output in `alterx` and `uro` by removing file output flags (`-o`) so generated entries stream immediately to stdout.
+- Fixed `asnmap` hanging on interactive API key prompts by closing subprocess stdin and validating `PDCP_API_KEY` presence before execution.
+- Fixed `tlsx` CLI failure caused by probe flag conflicts by removing `-san` and `-cn` flags when invoking `-jarm`.
+- Fixed `gowitness` browser resolution and web integration by symlinking `/usr/bin/google-chrome`, tagging assets with screenshot URIs, serving screenshots via `/api/screenshots/*`, and adding an in-app screenshot modal in `AssetTable.tsx`.
+- Fixed `jsluice` infinite hang by properly specifying `--resolve-paths` and passing target URLs as arguments while feeding EOF to stdin.
+- Fixed `arjun` method syntax error by passing single `-m GET` parameter.
+- Fixed `nomore403` flag syntax error by replacing `-max-rate 30` with `-m 30 --no-banner` and mounting payloads at `/opt/nomore403/payloads`.
+- Fixed `corsy` "no valid urls to test" error by piping targets to stdin and supplying `-u targets[0]`.
+- Fixed `s3scanner` command failure by eliminating the invalid `scan` subcommand and using `-bucket-file` with `-json`.
+- Recorded `BUG-004` (truncated stop scan toast message) and `FEAT-013` (dedicated priority score and star rating column) in `personal.md`.
 
 ### Tested
 - Database integration test suite (`asset_repo_test.go`, `finding_repo_test.go`).

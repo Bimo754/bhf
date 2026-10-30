@@ -2,6 +2,8 @@ package api
 
 import (
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -18,6 +20,7 @@ type RouterConfig struct {
 	WSHandler      *WSHandler
 	MCPServer      http.Handler
 	StaticFS       http.FileSystem
+	DataDir        string
 }
 
 // NewRouter constructs a configured chi HTTP router.
@@ -81,6 +84,13 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 		// WebSocket streaming
 		api.Get("/ws/scans/{id}/logs", cfg.WSHandler.StreamLogs)
+
+		// Static screenshots file server
+		if cfg.DataDir != "" {
+			screenshotsDir := filepath.Join(cfg.DataDir, "screenshots")
+			_ = os.MkdirAll(screenshotsDir, 0755)
+			api.Handle("/screenshots/*", http.StripPrefix("/api/screenshots/", http.FileServer(http.Dir(screenshotsDir))))
+		}
 	})
 
 	// Static frontend assets (if provided)

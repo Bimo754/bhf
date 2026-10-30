@@ -73,7 +73,6 @@ func (t *UroTool) DefaultArgs(target *models.Target, hosts []string, liveURLs []
 
 	baseArgs := []string{
 		"-i", listFile,
-		"-o", outputFile,
 	}
 
 	if t.BinaryName() == "uv" {

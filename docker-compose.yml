@@ -17,3 +17,5 @@ services:
       - BHF_HOST=0.0.0.0
       - BHF_DATA_DIR=/app/data
       - BHF_LOG_LEVEL=INFO
+      - PYTHONUNBUFFERED=1
+      - PDCP_API_KEY=${PDCP_API_KEY:-}
