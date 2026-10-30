@@ -85,8 +85,12 @@ export const App: React.FC = () => {
 
     scanService.listByTarget(activeTarget.id).then((scs) => {
       setScans(scs);
-      if (scs.length > 0 && !activeScanId) {
-        setActiveScanId(scs[0].id);
+      if (scs.length > 0) {
+        if (!activeScanId || !scs.some((s) => s.id === activeScanId)) {
+          setActiveScanId(scs[0].id);
+        }
+      } else {
+        setActiveScanId(null);
       }
     }).catch(console.error);
 
@@ -94,11 +98,29 @@ export const App: React.FC = () => {
     loadFindings(1, findingSearch, findingSeverity);
   }, [activeTarget]);
 
+  // Synchronize latest values to refs so WebSocket stream events and callbacks
+  // do not recreate connections or cause infinite state loops.
+  const scansRef = useRef<Scan[]>(scans);
+  scansRef.current = scans;
+
+  const activeTargetRef = useRef<Target | null>(activeTarget);
+  activeTargetRef.current = activeTarget;
+
+  const assetSearchRef = useRef(assetSearch);
+  assetSearchRef.current = assetSearch;
+
+  const findingSearchRef = useRef(findingSearch);
+  findingSearchRef.current = findingSearch;
+
+  const findingSeverityRef = useRef(findingSeverity);
+  findingSeverityRef.current = findingSeverity;
+
   const loadAssets = async (page: number, search: string) => {
-    if (!activeTarget) return;
+    const target = activeTargetRef.current;
+    if (!target) return;
     setIsAssetsLoading(true);
     try {
-      const data = await assetService.listByTarget(activeTarget.id, page, 50, search);
+      const data = await assetService.listByTarget(target.id, page, 50, search);
       setAssetsData(data);
     } catch (err) {
       console.error('Failed to load assets', err);
@@ -108,10 +130,11 @@ export const App: React.FC = () => {
   };
 
   const loadFindings = async (page: number, search: string, severity: string) => {
-    if (!activeTarget) return;
+    const target = activeTargetRef.current;
+    if (!target) return;
     setIsFindingsLoading(true);
     try {
-      const data = await findingService.listByTarget(activeTarget.id, page, 50, search, severity);
+      const data = await findingService.listByTarget(target.id, page, 50, search, severity);
       setFindingsData(data);
     } catch (err) {
       console.error('Failed to load findings', err);
@@ -141,17 +164,12 @@ export const App: React.FC = () => {
       return;
     }
 
-    // Load historical logs and sync status immediately to prevent fast failure race conditions
+    // Load historical logs for the selected scan
     scanService.getLogs(activeScanId).then((loadedLogs) => {
-      setActiveScanLogs(loadedLogs);
-      if (activeTarget) {
-        scanService.listByTarget(activeTarget.id).then((scs) => {
-          setScans(scs);
-          const current = scs.find((s) => s.id === activeScanId);
-          if (current && current.status !== 'RUNNING') {
-            setRunningScanId(null);
-          }
-        });
+      setActiveScanLogs(loadedLogs.length > 2000 ? loadedLogs.slice(-2000) : loadedLogs);
+      const current = scansRef.current.find((s) => s.id === activeScanId);
+      if (current && current.status !== 'RUNNING') {
+        setRunningScanId(null);
       }
     }).catch(console.error);
 
@@ -160,26 +178,29 @@ export const App: React.FC = () => {
       activeScanId,
       (msg: StreamMessage) => {
         if (msg.type === 'log' && msg.line) {
-          setActiveScanLogs((prev) => [
-            ...prev,
-            {
-              scan_id: msg.scan_id,
-              stream: msg.stream || 'stdout',
-              line: msg.line!,
-              timestamp: msg.timestamp,
-            },
-          ]);
+          setActiveScanLogs((prev) => {
+            const next = [
+              ...prev,
+              {
+                scan_id: msg.scan_id,
+                stream: msg.stream || 'stdout',
+                line: msg.line!,
+                timestamp: msg.timestamp,
+              },
+            ];
+            return next.length > 2000 ? next.slice(-2000) : next;
+          });
         } else if (msg.type === 'complete' || msg.type === 'status') {
-          if (activeTarget) {
-            scanService.listByTarget(activeTarget.id).then(setScans);
-            loadAssets(1, assetSearch);
-            loadFindings(1, findingSearch, findingSeverity);
+          if (activeTargetRef.current) {
+            scanService.listByTarget(activeTargetRef.current.id).then(setScans);
+            loadAssets(1, assetSearchRef.current);
+            loadFindings(1, findingSearchRef.current, findingSeverityRef.current);
           }
           if (msg.status !== 'RUNNING') {
             setRunningScanId(null);
           }
           if (msg.type === 'complete') {
-            const scan = scans.find((s) => s.id === msg.scan_id);
+            const scan = scansRef.current.find((s) => s.id === msg.scan_id);
             const toolTitle = scan ? scan.tool_name : 'Task';
 
             if (msg.status === 'COMPLETED') {
@@ -212,7 +233,7 @@ export const App: React.FC = () => {
     return () => {
       ws.disconnect();
     };
-  }, [activeScanId, scans, activeTarget]);
+  }, [activeScanId]);
 
   const handleExecuteTool = async (toolName: string, customArgs: string[]) => {
     if (!activeTarget) return;

@@ -52,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Resolved Corsy tool packaging in runner container via dedicated git clone and isolated `uv` virtual environment.
 - Corrected Subzy repository import path to `github.com/PentestPad/subzy` in tools-builder container stage.
 - Resolved jsluice module path casing (`github.com/BishopFox/jsluice`) and enabled CGO compilation for tree-sitter bindings.
+- Fixed frontend runaway re-render and WebSocket reconnection storm in `App.tsx` by using refs for asynchronous callbacks and scoping effect dependencies to `activeScanId`.
 
 ### Tested
 - Database integration test suite (`asset_repo_test.go`, `finding_repo_test.go`).
