@@ -74,6 +74,8 @@ func main() {
 	registry.Register(tools.NewSubzyTool())
 	registry.Register(tools.NewAsnmapTool())
 	registry.Register(tools.NewNucleiTool())
+	registry.Register(tools.NewCorsyTool())
+	registry.Register(tools.NewS3ScannerTool())
 
 	log.Printf("[BHF] Registered %d security tools", len(registry.List()))
 

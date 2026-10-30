@@ -33,6 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Phase 4 content discovery and parameter fuzzing tools:
   - `arjun`: HTTP parameter discovery detecting hidden GET, POST, and JSON parameters with uv isolation.
   - `nomore403`: HTTP 401/403 forbidden bypass engine utilizing header injection and path mutations.
+- Added Phase 5 specialized vulnerability assessment and cloud reconnaissance tools:
+  - `corsy`: CORS misconfiguration scanner detecting arbitrary origin reflection with credentials.
+  - `s3scanner`: Cloud storage bucket reconnaissance scanner for public Amazon S3, Google Cloud, and Azure Blobs.
 
 ### Changed
 - Standardized UI to developer-grade GitHub Dark theme (`#0d1117`) with zero AI glowing neon hues and zero emojis.

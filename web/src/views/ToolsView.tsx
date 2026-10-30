@@ -43,7 +43,7 @@ const METHODOLOGY_STAGES: MethodologyStage[] = [
   },
   {
     title: 'Vulnerability Assessment',
-    toolNames: ['subzy', 'nuclei'],
+    toolNames: ['subzy', 'corsy', 's3scanner', 'nuclei'],
   },
 ];
 

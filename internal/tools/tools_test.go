@@ -363,6 +363,51 @@ func TestNomore403Parser(t *testing.T) {
 	}
 }
 
+func TestCorsyParser(t *testing.T) {
+	tool := tools.NewCorsyTool()
+	execCtx := newTestContext("target.com")
+
+	rawOutput := []string{
+		`[!] CORS Misconfiguration on https://api.target.com/profile with ACAC: true`,
+	}
+
+	result, err := tool.Run(execCtx, rawOutput)
+	if err != nil {
+		t.Fatalf("Corsy Run returned unexpected error: %v", err)
+	}
+
+	if len(result.Findings) != 1 {
+		t.Fatalf("expected 1 CORS finding, got %d", len(result.Findings))
+	}
+
+	if result.Findings[0].Severity != models.SeverityHigh {
+		t.Errorf("expected High severity for ACAC true, got %v", result.Findings[0].Severity)
+	}
+}
+
+func TestS3ScannerParser(t *testing.T) {
+	tool := tools.NewS3ScannerTool()
+	execCtx := newTestContext("target.com")
+
+	rawOutput := []string{
+		"target-backup | exists | read | read",
+	}
+
+	result, err := tool.Run(execCtx, rawOutput)
+	if err != nil {
+		t.Fatalf("S3Scanner Run returned unexpected error: %v", err)
+	}
+
+	if len(result.Findings) != 1 {
+		t.Fatalf("expected 1 bucket finding, got %d", len(result.Findings))
+	}
+
+	if result.Findings[0].Severity != models.SeverityHigh {
+		t.Errorf("expected High severity for readable bucket, got %v", result.Findings[0].Severity)
+	}
+}
+
+
 
 
 

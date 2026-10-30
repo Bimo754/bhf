@@ -112,6 +112,7 @@ bhf/
 │       ├── arjun.go              # Arjun parameter discovery tool (uv isolation)
 │       ├── asnmap.go             # Asnmap ASN and CIDR mapping tool
 │       ├── assetfinder.go        # Assetfinder runner and parser
+│       ├── corsy.go              # Corsy CORS misconfiguration scanner (uv isolation)
 │       ├── dnsx.go               # DNSx DNS resolution and A/CNAME record parser
 │       ├── ffuf.go               # Ffuf web fuzzer and wordlist manager
 │       ├── gau.go                # GetAllURLs archive extractor
@@ -123,6 +124,7 @@ bhf/
 │       ├── nomore403.go          # Nomore403 403/401 bypass engine
 │       ├── nuclei.go             # Nuclei vulnerability scanner and JSONL parser
 │       ├── registry.go           # Thread-safe registry for installed tools
+│       ├── s3scanner.go          # S3Scanner cloud storage bucket reconnaissance tool
 │       ├── subfinder.go          # Subfinder passive subdomain enumerator
 │       ├── subzy.go              # Subzy subdomain takeover vulnerability checker
 │       ├── theharvester.go       # theHarvester OSINT gatherer (uv isolation)
@@ -178,6 +180,8 @@ bhf/
 │      - `nomore403`: Tests access control bypasses on 401/403 forbidden assets via header tampering and path mutations.
 │   6. **Vulnerability Assessment**:
 │      - `subzy`: Subdomain takeover vulnerability checker auditing dangling CNAME records.
+│      - `corsy`: Audits web endpoints for CORS origin reflection and credential exposure.
+│      - `s3scanner`: Audits public cloud storage buckets across Amazon S3, GCP, and Azure.
 │      - `nuclei`: Fast, template-based scanning for exposures, misconfigurations, and known CVEs. Output is streamed live and parsed into structured findings with reproduction `curl` commands.
 
 ---
