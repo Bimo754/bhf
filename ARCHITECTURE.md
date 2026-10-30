@@ -114,8 +114,7 @@ bhf/
 │       ├── dnsx.go               # DNSx DNS resolution and A/CNAME record parser
 │       ├── ffuf.go               # Ffuf web fuzzer and wordlist manager
 │       ├── gau.go                # GetAllURLs archive extractor
-│       ├── gowitness.go          # Gowitness visual screenshot triage tool
-│       ├── httpx.go              # Httpx live probing and technology parser
+│       ├── httpx.go              # Httpx live probing, technology parser, and visual screenshot engine
 │       ├── interface.go          # Tool interface, Category, IsInScope, CleanDomain
 │       ├── jsluice.go            # Jsluice tree-sitter AST JavaScript route and secret parser
 │       ├── katana.go             # Katana crawler and endpoint extractor
@@ -163,10 +162,9 @@ bhf/
 │   2. **Port and Network Scanning**:
 │      - `naabu`: Fast SYN/Connect port scanning across discovered hostnames to identify exposed non-standard services.
 │   3. **HTTP Probing**:
-│      - `httpx`: Probes discovered hosts on HTTP/HTTPS ports, extracts HTTP status codes, page titles, and web technologies.
+│      - `httpx`: Probes discovered hosts on HTTP/HTTPS ports, extracts HTTP status codes, page titles, web technologies, and captures headless browser screenshots (`-screenshot`).
 │      - `tlsx`: Extracts SAN hostnames from certificates and captures JARM fingerprints.
 │      - `wafw00f`: Identifies protective WAF vendor technologies to tune rate limits.
-│      - `gowitness`: Captures headless screenshots for rapid visual triage across discovered web endpoints.
 │   4. **Crawling and URL Discovery**:
 │      - `katana`: Spider dynamic endpoints, JS files, and API routes with `-fs dn` scope protection.
 │      - `gau`: Fetches known endpoints from Wayback Machine, AlienVault, and Common Crawl.

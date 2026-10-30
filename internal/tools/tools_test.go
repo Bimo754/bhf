@@ -2,6 +2,9 @@ package tools_test
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/diamond/bhf/internal/models"
@@ -105,6 +108,44 @@ func TestHttpxParser(t *testing.T) {
 
 	if len(result.Assets) != 2 {
 		t.Fatalf("expected 2 assets from raw output fallback, got %d", len(result.Assets))
+	}
+}
+
+func TestHttpxJSONWithScreenshot(t *testing.T) {
+	tool := tools.NewHttpxTool()
+	execCtx := newTestContext("target.com")
+
+	tmpFile := filepath.Join(t.TempDir(), "httpx_output.json")
+	jsonLine := `{"url":"https://admin.target.com","input":"admin.target.com","port":"443","title":"Admin Portal","status_code":200,"tech":["Vue.js","Nginx"],"screenshot_path":"/data/screenshots/test/admin_target_com.png"}` + "\n"
+	if err := os.WriteFile(tmpFile, []byte(jsonLine), 0644); err != nil {
+		t.Fatalf("failed to write test file: %v", err)
+	}
+	execCtx.OutputFile = tmpFile
+
+	result, err := tool.Run(execCtx, nil)
+	if err != nil {
+		t.Fatalf("Httpx Run with JSON returned error: %v", err)
+	}
+
+	if len(result.Assets) != 1 {
+		t.Fatalf("expected 1 asset, got %d", len(result.Assets))
+	}
+
+	asset := result.Assets[0]
+	if asset.Host != "admin.target.com" {
+		t.Errorf("expected host admin.target.com, got %s", asset.Host)
+	}
+
+	hasScreenshotTech := false
+	expected := fmt.Sprintf("/api/screenshots/%s/admin_target_com.png", execCtx.Target.ID)
+	for _, tech := range asset.Technologies {
+		if tech == "Screenshot:"+expected {
+			hasScreenshotTech = true
+			break
+		}
+	}
+	if !hasScreenshotTech {
+		t.Errorf("expected Screenshot technology tag 'Screenshot:%s', got %v", expected, asset.Technologies)
 	}
 }
 
@@ -358,30 +399,5 @@ func TestS3ScannerParser(t *testing.T) {
 
 	if result.Findings[0].Severity != models.SeverityHigh {
 		t.Errorf("expected High severity for readable bucket, got %v", result.Findings[0].Severity)
-	}
-}
-
-func TestGowitnessParser(t *testing.T) {
-	tool := tools.NewGowitnessTool()
-	execCtx := newTestContext("target.com")
-
-	rawOutput := []string{
-		"[INF] Pre-flight checks complete",
-		"[INF] Screenshot taken for https://api.target.com",
-		"[INF] Screenshot taken for https://admin.target.com/login",
-		"[INF] Screenshot failed for https://evil.com", // out of scope
-	}
-
-	result, err := tool.Run(execCtx, rawOutput)
-	if err != nil {
-		t.Fatalf("Gowitness Run returned unexpected error: %v", err)
-	}
-
-	if len(result.Assets) != 2 {
-		t.Fatalf("expected 2 screenshot assets, got %d", len(result.Assets))
-	}
-
-	if result.Assets[0].Title != "Visual Screenshot Captured" {
-		t.Errorf("expected Title 'Visual Screenshot Captured', got %s", result.Assets[0].Title)
 	}
 }

@@ -32,8 +32,7 @@ RUN go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest 
     go install -v github.com/projectdiscovery/tlsx/cmd/tlsx@latest && \
     CGO_ENABLED=1 go install -v github.com/BishopFox/jsluice/cmd/jsluice@latest && \
     go install -v github.com/devploit/nomore403@latest && \
-    go install -v github.com/sa7mon/s3scanner@latest && \
-    go install -v github.com/sensepost/gowitness@latest
+    go install -v github.com/sa7mon/s3scanner@latest
 
 # ==============================================================================
 # Stage 3: Build the Unified BHF Go Server Binary

@@ -11,8 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added "Skip Tool" feature allowing operators to skip any active tool during an automated sequence (full pipeline or stage sequence) from both the Tools and Terminal views without aborting the rest of the pipeline.
+- Integrated native visual screenshot capture into `httpx` (`-screenshot`, `-system-chrome`, `-srd`, `-esb`, `-ehb`), parsing output paths and binding screenshots directly to asset inventory.
+- Enhanced `VisualGallery.tsx` with default "Screenshots only" display, canonical host deduplication (collapsing 301/302 redirects into destination asset), and 4xx/5xx error suppression.
 
 ### Fixed
+- Replaced unstable `gowitness` tool with ProjectDiscovery's native `httpx -ss` engine, resolving `BUG-008` (browser CDP crashes, `/dev/shm` exhaustion, silent capture drops, and placeholder card clutter).
+- Removed deprecated `gowitness` across backend, Dockerfile, tests, and methodology pipeline.
 - Fixed `nomore403` instant 37ms termination by attaching `os.DevNull` character device to `cmd.Stdin` in `internal/engine/runner.go` rather than an empty pipe, preventing the tool from mistaking non-interactive execution for empty piped stdin.
 - Fixed frontend scan state desynchronization in `web/src/App.tsx` by adding active scan status reconciliation and periodic polling, ensuring the UI does not freeze on fast-finishing scans or missed WebSocket broadcasts.
 - Ensured scans are cleanly unregistered from dispatcher via deferred call in `internal/api/scan_handler.go`.

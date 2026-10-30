@@ -17,7 +17,7 @@ Track defects, crashes, parser anomalies, or UI issues discovered during live ex
 | BUG-005 | 2026-10-30 | Content Discovery | High | Arjun stability probe raises unhandled AttributeError on string response | Resolved |
 | BUG-006 | 2026-10-30 | Vulnerability Assessment | High | Nuclei scan fails immediately with 'no templates provided for scan' due to missing /root/nuclei-templates | Open |
 | BUG-007 | 2026-10-30 | Tooling / Subdomain Enum | Low | Remove alterx and asnmap tool integrations from framework | Resolved |
-| BUG-008 | 2026-10-30 | Live HTTP Probing / Visual | High | Screenshot engine instability (gowitness capture drops/crashes) and Visual Gallery placeholder clutter | Open |
+| BUG-008 | 2026-10-30 | Live HTTP Probing / Visual | High | Screenshot engine instability (gowitness capture drops/crashes) and Visual Gallery placeholder clutter | Resolved |
 
 *Status Values*: `Open`, `Investigating`, `In Progress`, `Resolved`, `Closed`
 
@@ -123,18 +123,10 @@ Track defects, crashes, parser anomalies, or UI issues discovered during live ex
   - **Silent Drops & Incomplete Captures**: When `gowitness scan file` encounters unresponsive endpoints, cert mismatches, or hangs on heavy JavaScript bundles, it times out or skips targets without writing JPEG/PNG files to disk, yet `gowitness.go` still records asset entries.
   - **Frontend Filtering Gap**: `VisualGallery.tsx` filters only on `a.url || a.status_code`, without checking whether a valid screenshot URI exists in `a.technologies`.
   - **Redirect Duplication**: No client-side deduplication or canonical redirect folding (e.g. coalescing 301/302 redirect pairs into the destination 200 target).
-- **Target Resolution & Tool Migration Plan**: (Tracked, do not fix yet per operator request)
-  - **Tool Replacement Evaluation (Migrate away from `gowitness`)**:
-    - **Option 1 (Recommended - `httpx -screenshot`)**: Replace `gowitness` with ProjectDiscovery's native `httpx -ss -system-chrome -screenshot-timeout 10`. Benefits:
-      - Already compiled and integrated in BHF's core stack.
-      - Eliminates the need for a separate screenshot tool and redundant HTTP connections.
-      - Proven, battle-tested concurrency, timeout, and retry model matching the rest of PD tooling.
-      - Significantly lower memory overhead and Docker image footprint.
-    - **Option 2 (Hardened Direct Chromium CDP Runner)**: Replace `gowitness` with a dedicated lightweight Go Chromium runner configured with mandatory container flags (`--no-sandbox`, `--disable-dev-shm-usage`, `--disable-gpu`, `--single-process`).
-  - **Visual Gallery UI Enhancements**:
-    - Add a "Screenshots Only" toggle filter in `VisualGallery.tsx` (enabled by default so hunters only browse actual screenshots).
-    - Deduplicate canonical redirect chains and apex/www aliases.
-    - Filter out 400/502 error captures unless explicitly requested by the operator.
+- **Resolution**:
+  - Replaced `gowitness` with ProjectDiscovery's native `httpx -ss -system-chrome -srd <screenshotDir> -esb -ehb` integration in `internal/tools/httpx.go`, unifying live HTTP probing and visual screenshots into a single, high-reliability tool.
+  - Fully removed `gowitness` across backend (`cmd/bhf-server/main.go`), Dockerfile (`docker/Dockerfile`), tests (`internal/tools/tools_test.go`), and frontend (`ToolsView.tsx`).
+  - Enhanced `VisualGallery.tsx` with default "Screenshots only" filtering, canonical host deduplication (collapsing 301/302 redirects into canonical 200 OK asset), and 4xx/5xx error suppression.
 
 ---
 

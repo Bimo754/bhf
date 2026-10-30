@@ -12,34 +12,95 @@ export const VisualGallery: React.FC<VisualGalleryProps> = ({
   onLaunchScan,
 }) => {
   const [search, setSearch] = useState('');
+  const [screenshotsOnly, setScreenshotsOnly] = useState(true);
+  const [deduplicateHosts, setDeduplicateHosts] = useState(true);
+  const [hideErrors, setHideErrors] = useState(true);
   const [lightboxImage, setLightboxImage] = useState<{ src: string; title: string; url: string } | null>(null);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
 
-  // Filter assets to those with live URLs or screenshots
+  const getScreenshotUrl = (asset: Asset): string | null => {
+    const sTag = asset.technologies?.find((t) => t.startsWith('Screenshot:'));
+    return sTag ? sTag.replace('Screenshot:', '') : null;
+  };
+
+  // Filter and deduplicate assets
   const galleryAssets = useMemo(() => {
-    return assets.filter((a) => {
+    let candidates = assets.filter((a) => {
       const liveURL = a.url || (a.status_code ? `https://${a.host}` : null);
       if (!liveURL) return false;
 
-      if (!search.trim()) return true;
-      const query = search.toLowerCase();
-      return (
-        a.host.toLowerCase().includes(query) ||
-        (a.title && a.title.toLowerCase().includes(query)) ||
-        (a.technologies && a.technologies.some((t) => t.toLowerCase().includes(query)))
-      );
+      const screenshot = getScreenshotUrl(a);
+      if (screenshotsOnly && !screenshot) return false;
+
+      if (hideErrors && !screenshot && a.status_code && a.status_code >= 400) {
+        return false;
+      }
+
+      if (search.trim()) {
+        const query = search.toLowerCase();
+        const matches =
+          a.host.toLowerCase().includes(query) ||
+          (a.title && a.title.toLowerCase().includes(query)) ||
+          (a.technologies && a.technologies.some((t) => t.toLowerCase().includes(query)));
+        if (!matches) return false;
+      }
+
+      return true;
     });
-  }, [assets, search]);
+
+    if (deduplicateHosts) {
+      const hostMap = new Map<string, Asset>();
+      for (const a of candidates) {
+        const key = a.host.toLowerCase();
+        const existing = hostMap.get(key);
+        if (!existing) {
+          hostMap.set(key, a);
+          continue;
+        }
+
+        // Priority 1: Has screenshot
+        const hasSSCurrent = !!getScreenshotUrl(a);
+        const hasSSExisting = !!getScreenshotUrl(existing);
+        if (hasSSCurrent && !hasSSExisting) {
+          hostMap.set(key, a);
+          continue;
+        } else if (!hasSSCurrent && hasSSExisting) {
+          continue;
+        }
+
+        // Priority 2: 200 OK over redirects (301/302) or error codes
+        const is200Current = a.status_code === 200;
+        const is200Existing = existing.status_code === 200;
+        if (is200Current && !is200Existing) {
+          hostMap.set(key, a);
+          continue;
+        } else if (!is200Current && is200Existing) {
+          continue;
+        }
+
+        // Priority 3: HTTPS over HTTP
+        const isHttpsCurrent = a.url?.startsWith('https://');
+        const isHttpsExisting = existing.url?.startsWith('https://');
+        if (isHttpsCurrent && !isHttpsExisting) {
+          hostMap.set(key, a);
+          continue;
+        }
+
+        // Priority 4: Higher priority score
+        if ((a.priority_score || 0) > (existing.priority_score || 0)) {
+          hostMap.set(key, a);
+        }
+      }
+      candidates = Array.from(hostMap.values());
+    }
+
+    return candidates;
+  }, [assets, search, screenshotsOnly, hideErrors, deduplicateHosts]);
 
   const handleCopy = (url: string) => {
     navigator.clipboard.writeText(url);
     setCopiedUrl(url);
     setTimeout(() => setCopiedUrl(null), 2000);
-  };
-
-  const getScreenshotUrl = (asset: Asset): string | null => {
-    const sTag = asset.technologies?.find((t) => t.startsWith('Screenshot:'));
-    return sTag ? sTag.replace('Screenshot:', '') : null;
   };
 
   const getStatusPill = (code?: number) => {
@@ -60,7 +121,7 @@ export const VisualGallery: React.FC<VisualGalleryProps> = ({
   return (
     <div className="bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden flex flex-col font-mono">
       {/* Gallery Toolbar */}
-      <div className="p-3 bg-[#161b22] border-b border-[#30363d] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <div className="p-3 bg-[#161b22] border-b border-[#30363d] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
           <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-2.5 top-2.5" />
           <input
@@ -72,8 +133,42 @@ export const VisualGallery: React.FC<VisualGalleryProps> = ({
           />
         </div>
 
-        <div className="text-xs text-zinc-400 self-end sm:self-auto">
-          Showing <span className="text-zinc-200 font-semibold">{galleryAssets.length}</span> live endpoints
+        <div className="flex flex-wrap items-center gap-3 text-xs">
+          <label className="flex items-center space-x-1.5 cursor-pointer text-zinc-400 hover:text-zinc-200 select-none text-[11px]">
+            <input
+              type="checkbox"
+              checked={screenshotsOnly}
+              onChange={(e) => setScreenshotsOnly(e.target.checked)}
+              className="rounded bg-[#0d1117] border-[#30363d] text-emerald-500 focus:ring-0 focus:ring-offset-0 cursor-pointer h-3.5 w-3.5"
+            />
+            <span>Screenshots only</span>
+          </label>
+
+          <label className="flex items-center space-x-1.5 cursor-pointer text-zinc-400 hover:text-zinc-200 select-none text-[11px]">
+            <input
+              type="checkbox"
+              checked={deduplicateHosts}
+              onChange={(e) => setDeduplicateHosts(e.target.checked)}
+              className="rounded bg-[#0d1117] border-[#30363d] text-emerald-500 focus:ring-0 focus:ring-offset-0 cursor-pointer h-3.5 w-3.5"
+            />
+            <span>Deduplicate hosts</span>
+          </label>
+
+          <label className="flex items-center space-x-1.5 cursor-pointer text-zinc-400 hover:text-zinc-200 select-none text-[11px]">
+            <input
+              type="checkbox"
+              checked={hideErrors}
+              onChange={(e) => setHideErrors(e.target.checked)}
+              className="rounded bg-[#0d1117] border-[#30363d] text-emerald-500 focus:ring-0 focus:ring-offset-0 cursor-pointer h-3.5 w-3.5"
+            />
+            <span>Hide 4xx/5xx errors</span>
+          </label>
+
+          <span className="text-zinc-600 hidden lg:inline">|</span>
+
+          <div className="text-xs text-zinc-400 shrink-0">
+            Showing <span className="text-zinc-200 font-semibold">{galleryAssets.length}</span> endpoints
+          </div>
         </div>
       </div>
 
@@ -83,7 +178,7 @@ export const VisualGallery: React.FC<VisualGalleryProps> = ({
           <div className="py-16 text-center text-zinc-500 italic text-xs">
             {search
               ? 'No live services match the gallery filter.'
-              : 'No live HTTP/S web endpoints discovered yet. Run Httpx or Gowitness to populate visual screenshots.'}
+              : 'No live HTTP/S web endpoints discovered yet. Run Httpx to populate visual screenshots.'}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

@@ -47,7 +47,7 @@ const METHODOLOGY_STAGES: MethodologyStage[] = [
   {
     title: 'Live HTTP/S Probing & Fingerprinting',
     description: 'Probe web ports, detect tech stack, extract TLS SANs, and capture screenshots.',
-    toolNames: ['httpx', 'tlsx', 'wafw00f', 'gowitness'],
+    toolNames: ['httpx', 'tlsx', 'wafw00f'],
   },
   {
     title: 'Crawling & Endpoint Discovery',
@@ -89,7 +89,7 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
   const fullPipelineTools = useMemo(() => {
     const s1 = ['subfinder', 'assetfinder', 'theharvester', 'dnsx'];
     const s2 = ['naabu'];
-    const s3 = ['httpx', 'tlsx', 'wafw00f', 'gowitness'];
+    const s3 = ['httpx', 'tlsx', 'wafw00f'];
     const s4 = ['katana', 'gau', 'uro', 'jsluice'];
     const reProbe = enrichAfterCrawl ? ['httpx'] : [];
     const s5 = ['ffuf', 'arjun', 'nomore403'];
