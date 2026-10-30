@@ -84,12 +84,14 @@ func (t *CorsyTool) DefaultArgs(target *models.Target, hosts []string, liveURLs 
 		baseArgs = []string{
 			"-i", listFile,
 			"-t", "10",
+			"-q",
 			"-o", outputFile,
 		}
 	} else {
 		baseArgs = []string{
 			"-u", targets[0],
 			"-t", "10",
+			"-q",
 			"-o", outputFile,
 		}
 	}

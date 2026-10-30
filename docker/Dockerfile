@@ -77,6 +77,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
+ENV PATH="/root/.local/bin:/usr/local/bin:$PATH"
+
 # Copy uv (fast Python package runner)
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
@@ -85,7 +87,11 @@ RUN uv tool install --python 3.14 git+https://github.com/laramies/theHarvester.g
     uv tool install --python 3.14 wafw00f && \
     uv tool install --python 3.14 uro && \
     uv tool install --python 3.14 arjun && \
-    uv tool install --python 3.14 corsy
+    git clone --depth 1 https://github.com/s0md3v/Corsy.git /opt/corsy && \
+    uv venv /opt/corsy/.venv --python 3.14 && \
+    uv pip install --python /opt/corsy/.venv/bin/python -r /opt/corsy/requirements.txt && \
+    printf '#!/bin/sh\nexec /opt/corsy/.venv/bin/python /opt/corsy/corsy.py "$@"\n' > /usr/local/bin/corsy && \
+    chmod +x /usr/local/bin/corsy
 
 # Copy security tool binaries
 COPY --from=tools-builder /go/bin/* /usr/local/bin/
@@ -99,7 +105,6 @@ RUN mkdir -p /app/data
 EXPOSE 8080
 VOLUME ["/app/data"]
 
-ENV PATH="/root/.local/bin:/usr/local/bin:$PATH"
 ENV BHF_PORT=8080
 ENV BHF_HOST=0.0.0.0
 ENV BHF_DATA_DIR=/app/data
