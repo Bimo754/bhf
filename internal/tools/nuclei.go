@@ -81,30 +81,27 @@ func (t *NucleiTool) DefaultArgs(target *models.Target, hosts []string, liveURLs
 		}
 	}
 
-	if len(targets) > 0 {
-		listFile := outputFile + ".targets.txt"
-		if err := os.WriteFile(listFile, []byte(strings.Join(targets, "\n")), 0644); err == nil {
-			return []string{
-				"-l", listFile,
-				"-s", "info,low,medium,high,critical",
-				"-c", "25",
-				"-rl", "150",
-				"-stats",
-				"-si", "10",
-				"-jle", outputFile,
-			}
-		}
-	}
-
-	return []string{
-		"-u", cleanRoot,
-		"-s", "info,low,medium,high,critical",
-		"-c", "25",
-		"-rl", "150",
+	baseArgs := []string{
+		"-s", "low,medium,high,critical",
+		"-tags", "cve,exposure,misconfig,takeover,vuln",
+		"-c", "50",
+		"-rl", "300",
+		"-timeout", "5",
+		"-retries", "1",
+		"-mhe", "3",
 		"-stats",
 		"-si", "10",
 		"-jle", outputFile,
 	}
+
+	if len(targets) > 0 {
+		listFile := outputFile + ".targets.txt"
+		if err := os.WriteFile(listFile, []byte(strings.Join(targets, "\n")), 0644); err == nil {
+			return append([]string{"-l", listFile}, baseArgs...)
+		}
+	}
+
+	return append([]string{"-u", cleanRoot}, baseArgs...)
 }
 
 func (t *NucleiTool) IsInstalled() bool {
