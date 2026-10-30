@@ -52,6 +52,10 @@ func (t *Nomore403Tool) DefaultArgs(target *models.Target, hosts []string, liveU
 		targetURL = "https://" + hosts[0]
 	}
 
+	if outputFile != "" {
+		_ = os.WriteFile(outputFile+".targets.txt", []byte(targetURL+"\n"), 0644)
+	}
+
 	args := []string{
 		"-u", targetURL,
 		"-m", "30",

@@ -142,6 +142,8 @@ func (h *ScanHandler) executeScanAsync(
 	liveURLs []string,
 	outputFile string,
 ) {
+	defer h.dispatcher.Unregister(scan.ID)
+
 	var stdin io.Reader
 	if targetData, err := os.ReadFile(outputFile + ".targets.txt"); err == nil && len(targetData) > 0 {
 		stdin = bytes.NewReader(targetData)

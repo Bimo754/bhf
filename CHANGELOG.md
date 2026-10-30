@@ -9,7 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+### Fixed
+- Fixed `nomore403` instant 37ms termination by attaching `os.DevNull` character device to `cmd.Stdin` in `internal/engine/runner.go` rather than an empty pipe, preventing the tool from mistaking non-interactive execution for empty piped stdin.
+- Fixed frontend scan state desynchronization in `web/src/App.tsx` by adding active scan status reconciliation and periodic polling, ensuring the UI does not freeze on fast-finishing scans or missed WebSocket broadcasts.
+- Ensured scans are cleanly unregistered from dispatcher via deferred call in `internal/api/scan_handler.go`.
 - Created foundational architectural and engineering documentation:
   - `RULES.md`: Core engineering commandments, Single Responsibility Principle, Don't Repeat Yourself (DRY), Single Source of Truth (SSOT), UI aesthetics, traffic safety, and zero-guesswork debugging rules.
   - `ARCHITECTURE.md`: Complete system architecture, component diagram, directory roles, database schema, SRP & DRY principles, and MCP integration blueprint.

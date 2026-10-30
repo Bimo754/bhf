@@ -206,11 +206,19 @@ export const App: React.FC = () => {
     // Load historical logs for the selected scan
     scanService.getLogs(activeScanId).then((loadedLogs) => {
       setActiveScanLogs(loadedLogs.length > 2000 ? loadedLogs.slice(-2000) : loadedLogs);
-      const current = scansRef.current.find((s) => s.id === activeScanId);
-      if (current && current.status !== 'RUNNING') {
-        setRunningScanId(null);
-      }
     }).catch(console.error);
+
+    // Reconcile status directly from server to avoid race conditions with fast-finishing scans
+    if (activeTargetRef.current) {
+      scanService.listByTarget(activeTargetRef.current.id).then((freshScans) => {
+        setScans(freshScans);
+        scansRef.current = freshScans;
+        const current = freshScans.find((s) => s.id === activeScanId);
+        if (current && current.status !== 'RUNNING') {
+          setRunningScanId(null);
+        }
+      }).catch(console.error);
+    }
 
     // Stream real-time events
     const ws = new ScanWebSocket(
@@ -319,6 +327,24 @@ export const App: React.FC = () => {
       ws.disconnect();
     };
   }, [activeScanId]);
+
+  // Periodic safety reconciliation while a scan is running, preventing UI desync if WS drops
+  useEffect(() => {
+    if (!runningScanId || !activeTarget) return;
+
+    const interval = setInterval(() => {
+      scanService.listByTarget(activeTarget.id).then((freshScans) => {
+        setScans(freshScans);
+        scansRef.current = freshScans;
+        const current = freshScans.find((s) => s.id === runningScanId);
+        if (current && current.status !== 'RUNNING') {
+          setRunningScanId(null);
+        }
+      }).catch(console.error);
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [runningScanId, activeTarget]);
 
   const handleExecuteTool = async (toolName: string, customArgs: string[]) => {
     if (!activeTarget) return;

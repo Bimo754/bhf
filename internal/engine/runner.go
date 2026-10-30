@@ -44,8 +44,9 @@ func (r *Runner) RunWithStdin(ctx context.Context, scanID string, binaryPath str
 	// Provide non-blocking stdin to prevent interactive CLI tools from blocking
 	if stdin != nil {
 		cmd.Stdin = stdin
-	} else {
-		cmd.Stdin = strings.NewReader("")
+	} else if devNull, err := os.Open(os.DevNull); err == nil {
+		defer devNull.Close()
+		cmd.Stdin = devNull
 	}
 
 	stdoutPipe, err := cmd.StdoutPipe()
