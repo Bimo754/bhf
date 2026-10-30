@@ -29,7 +29,7 @@ RUN go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest 
     go install -v github.com/lc/gau/v2/cmd/gau@latest && \
     go install -v github.com/ffuf/ffuf/v2@latest && \
     go install -v github.com/projectdiscovery/alterx/cmd/alterx@latest && \
-    go install -v github.com/pentestmonkey/subzy@latest && \
+    go install -v github.com/PentestPad/subzy@latest && \
     go install -v github.com/projectdiscovery/asnmap/cmd/asnmap@latest && \
     go install -v github.com/projectdiscovery/tlsx/cmd/tlsx@latest && \
     go install -v github.com/bishopfox/jsluice/cmd/jsluice@latest && \
