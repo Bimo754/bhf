@@ -267,3 +267,27 @@ BHF implements the Model Context Protocol to expose reconnaissance data directly
   - `list_findings`: Query identified vulnerabilities, severities, and reproduction commands.
   - `get_target_stats`: Get aggregated asset counts and severity breakdowns.
   - `list_tools`: Retrieve all supported reconnaissance tools and binary status.
+
+---
+
+## 7. Core Engineering Principles: SRP and DRY
+
+The BHF architecture is engineered around two complementary software design principles:
+
+### Single Responsibility Principle (SRP)
+- **One File, One Responsibility**: Each backend component, database repository, tool wrapper, API handler, frontend view, component, and TypeScript interface is isolated in its own dedicated file.
+- **Explicit Boundaries**: Database operations never leak into HTTP handlers; execution engine subprocess details never leak into tool parsers; UI components never execute direct network requests.
+
+### Don't Repeat Yourself (DRY) and Single Source of Truth (SSOT)
+- **Authoritative Representation of Knowledge**:
+  - *"Every piece of knowledge must have a single, unambiguous, authoritative representation within a system."*
+  - Business rules, heuristic weights, domain scoping, and network endpoints must exist in exactly one authoritative location.
+- **SSOT Implementations in BHF**:
+  - `tools.IsInScope()` & `tools.CleanDomain()`: Universal domain normalization and scope enforcement.
+  - `database.CalculatePriorityScore()`: Centralized asset scoring algorithm.
+  - `web/src/services/*`: Encapsulated REST and WebSocket network clients.
+  - `internal/database/schema.go`: Canonical SQLite database schema and foreign key definitions.
+- **Pragmatic DRY (The Rule of Three)**:
+  - DRY targets **duplication of intent and knowledge**, not coincidental syntax similarity.
+  - Common utilities and abstractions are only extracted when identical business logic appears across three or more call sites, avoiding premature and fragile abstractions.
+

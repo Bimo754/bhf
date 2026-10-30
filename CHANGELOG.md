@@ -11,10 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Created foundational architectural and engineering documentation:
-  - `RULES.md`: Core engineering commandments, Single Responsibility Principle, UI aesthetics, traffic safety, and zero-guesswork debugging rules.
-  - `ARCHITECTURE.md`: Complete system architecture, component diagram, directory roles, database schema, and MCP integration blueprint.
+  - `RULES.md`: Core engineering commandments, Single Responsibility Principle, Don't Repeat Yourself (DRY), Single Source of Truth (SSOT), UI aesthetics, traffic safety, and zero-guesswork debugging rules.
+  - `ARCHITECTURE.md`: Complete system architecture, component diagram, directory roles, database schema, SRP & DRY principles, and MCP integration blueprint.
   - `TESTING.md`: Testing strategy, test packages, table-driven patterns, and pre-commit verification checklist.
-  - `WORKFLOW.md`: 7-step feature addition lifecycle, Python tool isolation runbook, debugging protocol, and session starter prompt.
+  - `WORKFLOW.md`: 7-step feature addition lifecycle with DRY gates, Python tool isolation runbook, debugging protocol, and session starter prompt.
   - `CHANGELOG.md`: Progress tracking and release history.
 - Added Model Context Protocol (MCP) server supporting stdio and HTTP (`POST /api/mcp`) for AI agent integration.
 - Added Vulnerability Findings pipeline and dedicated UI view (`FindingsView.tsx`) with severity filtering, reproduction commands, and HackerOne report generation.

@@ -31,7 +31,28 @@ This document establishes the binding engineering principles, architectural cons
 
 ---
 
-## 3. UI/UX Aesthetic and Design Standards
+## 3. Don't Repeat Yourself (DRY) and Single Source of Truth (SSOT)
+
+- **The Pragmatic Definition**:
+  - *"Every piece of knowledge must have a single, unambiguous, authoritative representation within a system."* (Andy Hunt and Dave Thomas, *The Pragmatic Programmer*).
+  - DRY is fundamentally about eliminating duplication of **knowledge, business intent, and domain rules**, not just collapsing similar-looking syntax.
+- **True Duplication vs. Accidental Duplication**:
+  - **True Duplication (Strictly Prohibited)**: Representing the same business rule, calculation, data format, or domain logic in two or more independent places. If a single domain requirement changes tomorrow, an engineer must not need to modify multiple disconnected files to keep the system consistent.
+  - **Accidental Duplication (Acceptable Parallelism)**: Two blocks of code or functions that happen to look syntactically similar today but represent fundamentally different concepts in the domain and change for different reasons. Forcing them into an artificial shared abstraction introduces fragile coupling.
+- **Single Source of Truth (SSOT) Invariants**:
+  - **Scope Enforcement**: Domain cleaning (`tools.CleanDomain()`) and scope verification (`tools.IsInScope()`) must only ever be implemented once in `internal/tools/interface.go`. Tool parsers, repositories, and API handlers must call this single implementation and never implement ad-hoc string splitting or regex matching.
+  - **Priority Scoring**: All asset priority calculations, keyword weights, and heuristic scoring belong exclusively in `internal/database/asset_repo.go` (`CalculatePriorityScore()`). No tool parser or UI view may calculate priority scores inline.
+  - **API Contract & Routing**: HTTP endpoint routes are registered once in `internal/api/router.go`. The frontend interacts with these endpoints exclusively through the typed client wrappers in `web/src/services/`. Direct `fetch()` calls or copy-pasted API path strings in React components are strictly forbidden.
+  - **Database Schema**: Table schemas and foreign key constraints are declared once in `internal/database/schema.go`. Go models in `internal/models/` and TypeScript interfaces in `web/src/types/` must mirror this single definition without discrepancies.
+  - **UI Design System**: Color tokens, typography, and layout rules are defined in `tailwind.config.js` and CSS variables. Hardcoding random hex color values or magic spacing constants across UI components is prohibited.
+- **The Rule of Three and Pragmatic Abstraction**:
+  - *Duplication is cheaper than the wrong abstraction.*
+  - Never introduce premature generic abstractions or "god" utility classes for two similar lines of code.
+  - Refactor and extract common helper functions (e.g., in `internal/tools/interface.go` or frontend utility libraries) only when identical domain knowledge or logic is confirmed to repeat across three or more distinct call sites (Rule of Three).
+
+---
+
+## 4. UI/UX Aesthetic and Design Standards
 
 - **Zero AI Tropes**: Strictly NO neon cyan, purple, or magenta glows, gradients, rounded glassy bubbles, or gimmicky animations that make the application look AI-generated.
 - **Developer-Grade Dark Theme**: Strict GitHub Dark / Linear dark palette:
@@ -51,7 +72,7 @@ This document establishes the binding engineering principles, architectural cons
 
 ---
 
-## 4. Offensive Security, Hunter Methodology, and Traffic Safety
+## 5. Offensive Security, Hunter Methodology, and Traffic Safety
 
 - **The Hunter's Perspective (ROI Over Noise)**:
   - Think like an elite bug bounty hunter, not an automated script kiddy. Every capability and feature must map directly into the **Progressive Methodology Pipeline** (e.g., Subdomain & OSINT Enumeration, Port & Network Scanning, Live HTTP/S Probing, Crawling & Endpoint Discovery, Content Discovery & Fuzzing, Vulnerability Assessment, and future specialized stages).
@@ -73,7 +94,7 @@ This document establishes the binding engineering principles, architectural cons
 
 ---
 
-## 5. Technology Stack and Architecture
+## 6. Technology Stack and Architecture
 
 - **Backend**: Statically typed, high-concurrency Go (Golang). Pure Go SQLite in WAL mode via `modernc.org/sqlite` (zero CGO dependency).
 - **Single-Binary Standalone**: The Go binary embeds the built React frontend (`web/embed.go` using `embed.FS`) to produce a single self-contained executable.
@@ -82,7 +103,7 @@ This document establishes the binding engineering principles, architectural cons
 
 ---
 
-## 6. Git and Version Control Standards
+## 7. Git and Version Control Standards
 
 - **Conventional Commits**: Commit messages must follow the Conventional Commits specification:
   - `feat`: A new end-user feature or tool integration (e.g., `feat(tools): add katana crawler integration`)
@@ -97,14 +118,14 @@ This document establishes the binding engineering principles, architectural cons
 
 ---
 
-## 7. Python Dependency and Tool Isolation
+## 8. Python Dependency and Tool Isolation
 
 - **Virtual Environment Requirement**: Any Python-based tool (such as `theHarvester`) must run inside an isolated virtual environment using `uv tool install` or `python -m venv`.
 - **Zero Global Dependency Conflicts**: The Go server invokes Python tools via their isolated virtual environment binary paths (e.g., `/root/.local/bin/theHarvester` or `uv run`). No dependencies may be installed into global system Python site-packages.
 
 ---
 
-## 8. Methodical Debugging Doctrine (Zero Guesswork)
+## 9. Methodical Debugging Doctrine (Zero Guesswork)
 
 - **Never Guess**: When an error, crash, or unexpected behavior occurs, never guess or speculate on the cause.
 - **Root-Cause Investigation Protocol**:
@@ -116,7 +137,7 @@ This document establishes the binding engineering principles, architectural cons
 
 ---
 
-## 9. Verification Before Expansion
+## 10. Verification Before Expansion
 
 - **No Premature Feature Creep**: Do not proceed to adding new tools or features until all existing components are thoroughly tested, verified, and stable.
 - **Regression Prevention**: Every new capability or bug fix must be accompanied by appropriate unit or integration tests to guarantee long-term stability.

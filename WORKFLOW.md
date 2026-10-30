@@ -99,19 +99,21 @@ Before writing any code, answer these three mandatory questions:
 2. **Will this trigger excessive network traffic or WAF bans?** Any active network requests must include rate limiting (`-rl`), concurrency bounds (`-c`), and timeout controls.
 3. **Is scope strictly maintained?** Ensure that no third-party assets can leak into the database.
 
-### Step 2: Architecture and Single Responsibility Placement
-Determine exactly which files need to be created or modified according to Single Responsibility Principle:
-- New security tool? Add exactly one file in `internal/tools/<tool_name>.go` implementing `tools.Tool`.
-- New database entity? Add `internal/models/<entity>.go`, `internal/database/<entity>_repo.go`, update `internal/database/schema.go`, and add `web/src/types/<entity>.ts`.
-- New UI panel? Create a dedicated view in `web/src/views/` and granular components in `web/src/components/`.
+### Step 2: Architecture, Single Responsibility, and DRY Placement
+Determine exactly which files need to be created or modified according to Single Responsibility Principle (SRP) and Don't Repeat Yourself (DRY):
+- New security tool? Add exactly one file in `internal/tools/<tool_name>.go` implementing `tools.Tool`. Reuse existing execution wrappers (`RunWithStdin`) and universal scope guards (`tools.IsInScope()`) rather than duplicating subprocess management or scope verification logic.
+- New database entity? Add `internal/models/<entity>.go`, `internal/database/<entity>_repo.go`, update canonical schema in `internal/database/schema.go`, and add `web/src/types/<entity>.ts`.
+- New UI panel? Create a dedicated view in `web/src/views/` and granular components in `web/src/components/`. All network communications must route through dedicated services in `web/src/services/` to prevent duplicate API route definitions.
 
 ### Step 3: Test Definition
 Define tests for the new functionality before or alongside code implementation:
 - If adding a tool, prepare sample output lines and test its `Run()` parser in `internal/tools/tools_test.go`.
 - If modifying database logic, add a test in `internal/database/<entity>_repo_test.go`.
 
-### Step 4: Clean Implementation
+### Step 4: Clean Implementation and Single Source of Truth (SSOT)
 - Write idiomatic, clean Go code using typed structs, explicit error checking (`if err != nil`), and clean interfaces.
+- Enforce DRY: Never duplicate business rules, domain normalization, priority calculations, or validation logic across files. Refer to the canonical authoritative source.
+- Avoid premature abstraction: Follow the Rule of Three; only extract shared helper utilities when identical domain knowledge is repeated across 3 or more locations.
 - Write modern TypeScript React code using functional components with explicit types and dedicated service clients.
 - Adhere strictly to the GitHub Dark UI theme (`#0d1117`) with zero neon colors, zero fluff text, and zero emojis.
 
