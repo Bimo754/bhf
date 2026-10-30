@@ -15,6 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced `VisualGallery.tsx` with default "Screenshots only" display, canonical host deduplication (collapsing 301/302 redirects into destination asset), and 4xx/5xx error suppression.
 
 ### Fixed
+- Fixed screenshot loading failures in BHF Visual Gallery and Discovered Assets table by:
+  - Preserving nested relative paths (`screenshot/<host>/<hash>.png`) emitted by `httpx -srd` instead of truncating via `filepath.Base()`.
+  - Adding fallback parsing of httpx's `index_screenshot.txt` when JSON output omits `screenshot_path`.
+  - Replacing rigid static screenshot file server with an intelligent, traversal-safe `screenshotHandler` that directly matches relative paths and automatically falls back to filename hash discovery within target screenshot folders.
+  - Enforcing `0755` directory and `0644` file permissions post-scan so screenshots are world-readable across Docker and host environments.
+  - Updating existing database asset records to point directly to valid screenshot paths.
+  - Adding `onError` image fallback in `VisualGallery.tsx` to handle network issues gracefully without broken image icons.
 - Replaced unstable `gowitness` tool with ProjectDiscovery's native `httpx -ss` engine, resolving `BUG-008` (browser CDP crashes, `/dev/shm` exhaustion, silent capture drops, and placeholder card clutter).
 - Removed deprecated `gowitness` across backend, Dockerfile, tests, and methodology pipeline.
 - Fixed `nomore403` instant 37ms termination by attaching `os.DevNull` character device to `cmd.Stdin` in `internal/engine/runner.go` rather than an empty pipe, preventing the tool from mistaking non-interactive execution for empty piped stdin.
