@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Vulnerability Findings pipeline and dedicated UI view (`FindingsView.tsx`) with severity filtering, reproduction commands, and HackerOne report generation.
 - Added Asset Prioritization scoring engine calculating priority scores based on tech stack, sensitive keywords, and non-standard ports.
 - Added tool integrations for `dnsx`, `naabu`, and `theharvester` with isolated virtual environment execution.
+- Added Phase 1 core reconnaissance and vulnerability tools:
+  - `alterx`: Subdomain permutation and pattern generator with automatic scope verification.
+  - `subzy`: Subdomain takeover detector checking CNAME records against vulnerable services.
+  - `asnmap`: Network range, ASN, and CIDR mapping tool.
 
 ### Changed
 - Standardized UI to developer-grade GitHub Dark theme (`#0d1117`) with zero AI glowing neon hues and zero emojis.

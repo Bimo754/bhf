@@ -153,3 +153,79 @@ func TestDNSxParser(t *testing.T) {
 		t.Errorf("expected IP 192.168.1.1, got %s", result.Assets[0].IP)
 	}
 }
+
+func TestAlterxParser(t *testing.T) {
+	tool := tools.NewAlterxTool()
+	execCtx := newTestContext("target.com")
+
+	rawOutput := []string{
+		"[INF] Generating permutations",
+		"dev-api.target.com",
+		"staging-api.target.com",
+		"dev-api.target.com", // Duplicate
+		"out-of-scope.attacker.com",
+		"",
+	}
+
+	result, err := tool.Run(execCtx, rawOutput)
+	if err != nil {
+		t.Fatalf("Alterx Run returned unexpected error: %v", err)
+	}
+
+	if len(result.Assets) != 2 {
+		t.Fatalf("expected 2 distinct in-scope permutation assets, got %d", len(result.Assets))
+	}
+}
+
+func TestSubzyParser(t *testing.T) {
+	tool := tools.NewSubzyTool()
+	execCtx := newTestContext("target.com")
+
+	rawOutput := []string{
+		"[INFO] Checking 3 targets",
+		"[VULNERABLE] sub1.target.com [AWS/S3]",
+		"[NOT VULNERABLE] sub2.target.com",
+		"[VULNERABLE] evil.com [GitHub]", // out of scope
+	}
+
+	result, err := tool.Run(execCtx, rawOutput)
+	if err != nil {
+		t.Fatalf("Subzy Run returned unexpected error: %v", err)
+	}
+
+	if len(result.Findings) != 1 {
+		t.Fatalf("expected 1 in-scope takeover finding, got %d", len(result.Findings))
+	}
+
+	if result.Findings[0].MatchedAt != "sub1.target.com" {
+		t.Errorf("expected matched_at sub1.target.com, got %s", result.Findings[0].MatchedAt)
+	}
+
+	if result.Findings[0].Severity != models.SeverityHigh {
+		t.Errorf("expected High severity, got %v", result.Findings[0].Severity)
+	}
+}
+
+func TestAsnmapParser(t *testing.T) {
+	tool := tools.NewAsnmapTool()
+	execCtx := newTestContext("target.com")
+
+	rawOutput := []string{
+		`{"first_ip":"104.16.0.0","last_ip":"104.31.255.255","asn":13335,"as_name":"CLOUDFLARENET","as_country":"US","cidr":"104.16.0.0/12"}`,
+		"192.168.1.0/24",
+	}
+
+	result, err := tool.Run(execCtx, rawOutput)
+	if err != nil {
+		t.Fatalf("Asnmap Run returned unexpected error: %v", err)
+	}
+
+	if len(result.Assets) != 2 {
+		t.Fatalf("expected 2 network allocation assets, got %d", len(result.Assets))
+	}
+
+	if result.Assets[0].IP != "104.16.0.0/12" {
+		t.Errorf("expected CIDR 104.16.0.0/12, got %s", result.Assets[0].IP)
+	}
+}
+

@@ -108,6 +108,8 @@ bhf/
 │   │   ├── scan.go               # Scan execution session entity
 │   │   └── target.go             # Bug bounty target scope entity
 │   └── tools/                    # Security tool integrations
+│       ├── alterx.go             # Alterx subdomain permutation generator
+│       ├── asnmap.go             # Asnmap ASN and CIDR mapping tool
 │       ├── assetfinder.go        # Assetfinder runner and parser
 │       ├── dnsx.go               # DNSx DNS resolution and A/CNAME record parser
 │       ├── ffuf.go               # Ffuf web fuzzer and wordlist manager
@@ -119,48 +121,52 @@ bhf/
 │       ├── nuclei.go             # Nuclei vulnerability scanner and JSONL parser
 │       ├── registry.go           # Thread-safe registry for installed tools
 │       ├── subfinder.go          # Subfinder passive subdomain enumerator
+│       ├── subzy.go              # Subzy subdomain takeover vulnerability checker
 │       └── theharvester.go       # theHarvester OSINT gatherer (uv isolation)
-├── web/                          # Frontend single-page application
-│   ├── embed.go                  # Go embed.FS declaration for dist/
-│   ├── src/
-│   │   ├── components/           # Granular, reusable React UI components
-│   │   ├── services/             # API and WebSocket client services
-│   │   ├── types/                # Domain TypeScript interface declarations
-│   │   ├── views/                # Top-level view containers (Methodology, Assets, Findings, Console)
-│   │   ├── App.tsx               # Root component, state coordination, toasts
-│   │   ├── index.css             # Tailwind base styles and selection overrides
-│   │   └── main.tsx              # React DOM initialization
-│   ├── package.json              # Web dependencies
-│   ├── tailwind.config.js        # Design tokens and custom colors
-│   └── vite.config.ts            # Vite build configuration
-├── docker/
-│   └── Dockerfile                # Multi-stage production container build
-├── docker-compose.yml            # Container deployment configuration
-└── Makefile                      # Build automation targets
-```
-
----
-
-## 4. Execution Pipeline and Methodology Stages
-
-Reconnaissance in BHF is organized into standard offensive security stages:
-
-1. **Subdomain and OSINT Enumeration**:
-   - `subfinder`: Passive DNS and multi-source public query.
-   - `assetfinder`: Public archive and asset discovery.
-   - `theharvester`: Search engine and certificate log scraping inside an isolated virtual environment (`uv`).
-   - `dnsx`: Multi-resolver DNS resolution, wildcard filtering, and IP extraction.
-2. **Port and Network Scanning**:
-   - `naabu`: Fast SYN/Connect port scanning across discovered hostnames to identify exposed non-standard services.
-3. **HTTP Probing**:
-   - `httpx`: Probes discovered hosts on HTTP/HTTPS ports, extracts HTTP status codes, page titles, and web technologies.
-4. **Crawling and URL Discovery**:
-   - `katana`: Spider dynamic endpoints, JS files, and API routes with `-fs dn` scope protection.
-   - `gau`: Fetches known endpoints from Wayback Machine, AlienVault, and Common Crawl.
-5. **Content Discovery and Fuzzing**:
-   - `ffuf`: Directory and endpoint brute-forcing with calibrated rate limits against discovered live web targets.
-6. **Vulnerability Assessment**:
-   - `nuclei`: Fast, template-based scanning for exposures, misconfigurations, and known CVEs. Output is streamed live and parsed into structured findings with reproduction `curl` commands.
+│   ├── web/                      # Frontend single-page application
+│   │   ├── embed.go              # Go embed.FS declaration for dist/
+│   │   ├── src/
+│   │   │   ├── components/       # Granular, reusable React UI components
+│   │   │   ├── services/         # API and WebSocket client services
+│   │   │   ├── types/            # Domain TypeScript interface declarations
+│   │   │   ├── views/            # Top-level view containers (Methodology, Assets, Findings, Console)
+│   │   │   ├── App.tsx           # Root component, state coordination, toasts
+│   │   │   ├── index.css         # Tailwind base styles and selection overrides
+│   │   │   └── main.tsx          # React DOM initialization
+│   │   ├── package.json          # Web dependencies
+│   │   ├── tailwind.config.js    # Design tokens and custom colors
+│   │   └── vite.config.ts        # Vite build configuration
+│   ├── docker/
+│   │   └── Dockerfile            # Multi-stage production container build
+│   ├── docker-compose.yml        # Container deployment configuration
+│   └── Makefile                  # Build automation targets
+│   ```
+│   
+│   ---
+│   
+│   ## 4. Execution Pipeline and Methodology Stages
+│   
+│   Reconnaissance in BHF is organized into standard offensive security stages:
+│   
+│   1. **Subdomain and OSINT Enumeration**:
+│      - `subfinder`: Passive DNS and multi-source public query.
+│      - `assetfinder`: Public archive and asset discovery.
+│      - `theharvester`: Search engine and certificate log scraping inside an isolated virtual environment (`uv`).
+│      - `alterx`: Fast rule-based subdomain wordlist permutation generator.
+│      - `asnmap`: Network range, ASN, and CIDR block mapping.
+│      - `dnsx`: Multi-resolver DNS resolution, wildcard filtering, and IP extraction.
+│   2. **Port and Network Scanning**:
+│      - `naabu`: Fast SYN/Connect port scanning across discovered hostnames to identify exposed non-standard services.
+│   3. **HTTP Probing**:
+│      - `httpx`: Probes discovered hosts on HTTP/HTTPS ports, extracts HTTP status codes, page titles, and web technologies.
+│   4. **Crawling and URL Discovery**:
+│      - `katana`: Spider dynamic endpoints, JS files, and API routes with `-fs dn` scope protection.
+│      - `gau`: Fetches known endpoints from Wayback Machine, AlienVault, and Common Crawl.
+│   5. **Content Discovery and Fuzzing**:
+│      - `ffuf`: Directory and endpoint brute-forcing with calibrated rate limits against discovered live web targets.
+│   6. **Vulnerability Assessment**:
+│      - `subzy`: Subdomain takeover vulnerability checker auditing dangling CNAME records.
+│      - `nuclei`: Fast, template-based scanning for exposures, misconfigurations, and known CVEs. Output is streamed live and parsed into structured findings with reproduction `curl` commands.
 
 ---
 

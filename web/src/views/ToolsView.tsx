@@ -23,7 +23,7 @@ interface MethodologyStage {
 const METHODOLOGY_STAGES: MethodologyStage[] = [
   {
     title: 'Subdomain & OSINT Enumeration',
-    toolNames: ['subfinder', 'assetfinder', 'theharvester', 'dnsx'],
+    toolNames: ['subfinder', 'assetfinder', 'theharvester', 'alterx', 'asnmap', 'dnsx'],
   },
   {
     title: 'Port & Network Scanning',
@@ -43,7 +43,7 @@ const METHODOLOGY_STAGES: MethodologyStage[] = [
   },
   {
     title: 'Vulnerability Assessment',
-    toolNames: ['nuclei'],
+    toolNames: ['subzy', 'nuclei'],
   },
 ];
 
