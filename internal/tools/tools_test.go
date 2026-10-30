@@ -407,6 +407,32 @@ func TestS3ScannerParser(t *testing.T) {
 	}
 }
 
+func TestGowitnessParser(t *testing.T) {
+	tool := tools.NewGowitnessTool()
+	execCtx := newTestContext("target.com")
+
+	rawOutput := []string{
+		"[INF] Pre-flight checks complete",
+		"[INF] Screenshot taken for https://api.target.com",
+		"[INF] Screenshot taken for https://admin.target.com/login",
+		"[INF] Screenshot failed for https://evil.com", // out of scope
+	}
+
+	result, err := tool.Run(execCtx, rawOutput)
+	if err != nil {
+		t.Fatalf("Gowitness Run returned unexpected error: %v", err)
+	}
+
+	if len(result.Assets) != 2 {
+		t.Fatalf("expected 2 screenshot assets, got %d", len(result.Assets))
+	}
+
+	if result.Assets[0].Title != "Visual Screenshot Captured" {
+		t.Errorf("expected Title 'Visual Screenshot Captured', got %s", result.Assets[0].Title)
+	}
+}
+
+
 
 
 

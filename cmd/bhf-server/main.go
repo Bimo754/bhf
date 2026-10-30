@@ -63,6 +63,7 @@ func main() {
 	registry.Register(tools.NewHttpxTool())
 	registry.Register(tools.NewTlsxTool())
 	registry.Register(tools.NewWafw00fTool())
+	registry.Register(tools.NewGowitnessTool())
 	registry.Register(tools.NewKatanaTool())
 	registry.Register(tools.NewGauTool())
 	registry.Register(tools.NewUroTool())

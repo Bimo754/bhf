@@ -116,6 +116,7 @@ bhf/
 │       ├── dnsx.go               # DNSx DNS resolution and A/CNAME record parser
 │       ├── ffuf.go               # Ffuf web fuzzer and wordlist manager
 │       ├── gau.go                # GetAllURLs archive extractor
+│       ├── gowitness.go          # Gowitness visual screenshot triage tool
 │       ├── httpx.go              # Httpx live probing and technology parser
 │       ├── interface.go          # Tool interface, Category, IsInScope, CleanDomain
 │       ├── jsluice.go            # Jsluice tree-sitter AST JavaScript route and secret parser
@@ -169,6 +170,7 @@ bhf/
 │      - `httpx`: Probes discovered hosts on HTTP/HTTPS ports, extracts HTTP status codes, page titles, and web technologies.
 │      - `tlsx`: Extracts SAN hostnames from certificates and captures JARM fingerprints.
 │      - `wafw00f`: Identifies protective WAF vendor technologies to tune rate limits.
+│      - `gowitness`: Captures headless screenshots for rapid visual triage across discovered web endpoints.
 │   4. **Crawling and URL Discovery**:
 │      - `katana`: Spider dynamic endpoints, JS files, and API routes with `-fs dn` scope protection.
 │      - `gau`: Fetches known endpoints from Wayback Machine, AlienVault, and Common Crawl.

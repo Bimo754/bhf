@@ -36,6 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Phase 5 specialized vulnerability assessment and cloud reconnaissance tools:
   - `corsy`: CORS misconfiguration scanner detecting arbitrary origin reflection with credentials.
   - `s3scanner`: Cloud storage bucket reconnaissance scanner for public Amazon S3, Google Cloud, and Azure Blobs.
+- Added Phase 6 visual reconnaissance and screenshot triage:
+  - `gowitness`: Headless browser screenshot utility for rapid visual triage of live web applications.
 
 ### Changed
 - Standardized UI to developer-grade GitHub Dark theme (`#0d1117`) with zero AI glowing neon hues and zero emojis.

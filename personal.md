@@ -52,14 +52,14 @@ Track capabilities, tool integrations, and workflow improvements that increase b
 
 | ID | Date | Methodology Stage | Proposed Capability / Tool | Hunter ROI / Justification | Status |
 |---|---|---|---|---|---|
-| FEAT-001 | 2026-10-26 | Live HTTP Probing | TLS certificate SAN extraction | Finds hidden dev/origin hostnames on single IP addresses | Backlog |
+| FEAT-001 | 2026-10-26 | Live HTTP Probing | TLS certificate SAN extraction (tlsx) | Finds hidden dev/origin hostnames on single IP addresses | Implemented |
 | FEAT-002 | 2026-10-26 | Content Discovery | Custom header injection in Ffuf (Auth / Cookie) | Enables authenticated endpoint brute forcing | Planned |
 | FEAT-003 | 2026-10-26 | Crawling & Endpoints | Dedicated Endpoints table & UI tab | Separates crawled web routes from host assets; enables route search | Backlog |
 | FEAT-004 | 2026-10-26 | Execution Engine | Real-time streaming ingestion | Pipes stdout lines directly into DB and WS live during execution | Backlog |
-| FEAT-005 | 2026-10-26 | Crawling & Endpoints | JavaScript route & secret mining (jsluice) | Uncovers hidden API routes and leaked tokens from crawled JS | Backlog |
-| FEAT-006 | 2026-10-26 | HTTP Probing / Vuln | 403/401 bypass engine (nomore403) | Automates header tampering and path mutations on forbidden endpoints | Backlog |
-| FEAT-007 | 2026-10-26 | Content Discovery | Parameter discovery (arjun / x8) | Discovers hidden query and body parameters for injection testing | Backlog |
-| FEAT-008 | 2026-10-26 | Live HTTP Probing | Visual reconnaissance gallery (gowitness / httpx) | Automated web screenshots and UI visual triage gallery grid | Backlog |
+| FEAT-005 | 2026-10-26 | Crawling & Endpoints | JavaScript route & secret mining (jsluice) | Uncovers hidden API routes and leaked tokens from crawled JS | Implemented |
+| FEAT-006 | 2026-10-26 | HTTP Probing / Vuln | 403/401 bypass engine (nomore403) | Automates header tampering and path mutations on forbidden endpoints | Implemented |
+| FEAT-007 | 2026-10-26 | Content Discovery | Parameter discovery (arjun) | Discovers hidden query and body parameters for injection testing | Implemented |
+| FEAT-008 | 2026-10-26 | Live HTTP Probing | Visual reconnaissance gallery (gowitness) | Automated web screenshots and UI visual triage gallery grid | Implemented |
 | FEAT-009 | 2026-10-26 | Progressive Pipeline | Continuous recon delta engine | Historical snapshots and diffing ([NEW], [CHANGED], [REMOVED]) | Backlog |
 | FEAT-010 | 2026-10-26 | Workflow Orchestration| Automated multi-stage pipeline chaining | 1-click chained scans across stages with operator approval | Backlog |
 | FEAT-011 | 2026-10-27 | Execution Engine | Subprocess group isolation & emergency kill switch | Prevents orphaned processes; allows 1-click abort of all running scans | Backlog |

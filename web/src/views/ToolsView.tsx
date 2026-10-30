@@ -31,7 +31,7 @@ const METHODOLOGY_STAGES: MethodologyStage[] = [
   },
   {
     title: 'Live Host Probing',
-    toolNames: ['httpx', 'tlsx', 'wafw00f'],
+    toolNames: ['httpx', 'tlsx', 'wafw00f', 'gowitness'],
   },
   {
     title: 'Crawling & URL Discovery',
