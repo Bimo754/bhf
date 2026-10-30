@@ -150,8 +150,8 @@ func (r *AssetRepo) GetStats(targetID string) (AssetStats, error) {
 	return stats, nil
 }
 
-// ListByTarget returns assets for a target with pagination and optional search query & filter.
-func (r *AssetRepo) ListByTarget(targetID string, search string, filter string, limit, offset int) ([]models.Asset, int, error) {
+// ListByTarget returns assets for a target with pagination, search, filter, and sorting.
+func (r *AssetRepo) ListByTarget(targetID string, search string, filter string, sortBy string, order string, limit, offset int) ([]models.Asset, int, error) {
 	if limit <= 0 {
 		limit = 50
 	}
@@ -186,11 +186,34 @@ func (r *AssetRepo) ListByTarget(targetID string, search string, filter string, 
 		return nil, 0, fmt.Errorf("failed to count assets: %w", err)
 	}
 
-	// Fetch paginated ordered by priority score then recency
+	orderDir := "DESC"
+	if strings.ToLower(order) == "asc" {
+		orderDir = "ASC"
+	}
+
+	orderClause := "priority_score DESC, created_at DESC"
+	switch strings.ToLower(sortBy) {
+	case "priority":
+		orderClause = fmt.Sprintf("priority_score %s, created_at DESC", orderDir)
+	case "host":
+		orderClause = fmt.Sprintf("host %s", orderDir)
+	case "status":
+		orderClause = fmt.Sprintf("status_code %s, priority_score DESC", orderDir)
+	case "port":
+		orderClause = fmt.Sprintf("port %s", orderDir)
+	case "created_at":
+		orderClause = fmt.Sprintf("created_at %s", orderDir)
+	default:
+		if strings.ToLower(order) == "asc" {
+			orderClause = "priority_score ASC, created_at DESC"
+		}
+	}
+
+	// Fetch paginated ordered by dynamic order clause
 	query := `SELECT id, target_id, scan_id, host, url, ip, port, status_code, title, technologies, priority_score, created_at
 		FROM assets 
 		WHERE target_id = ? AND (host LIKE ? OR title LIKE ? OR ip LIKE ? OR url LIKE ?)` + filterClause + `
-		ORDER BY priority_score DESC, created_at DESC LIMIT ? OFFSET ?`
+		ORDER BY ` + orderClause + ` LIMIT ? OFFSET ?`
 
 	rows, err := r.db.Query(query, targetID, searchPattern, searchPattern, searchPattern, searchPattern, limit, offset)
 	if err != nil {

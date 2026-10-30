@@ -15,6 +15,7 @@ import { Navbar } from './components/Navbar';
 import { CreateTargetModal } from './components/CreateTargetModal';
 import { DeleteTargetModal } from './components/DeleteTargetModal';
 import { ToastContainer, ToastMessage } from './components/Toast';
+import { FilterChip } from './components/AssetTable';
 import { ToolsView } from './views/ToolsView';
 import { AssetsView } from './views/AssetsView';
 import { FindingsView } from './views/FindingsView';
@@ -38,6 +39,9 @@ export const App: React.FC = () => {
     limit: 50,
   });
   const [assetSearch, setAssetSearch] = useState('');
+  const [assetFilter, setAssetFilter] = useState<FilterChip>('all');
+  const [assetSort, setAssetSort] = useState<string>('priority');
+  const [assetOrder, setAssetOrder] = useState<'asc' | 'desc'>('desc');
   const [isAssetsLoading, setIsAssetsLoading] = useState(false);
 
   // Finding State
@@ -94,7 +98,7 @@ export const App: React.FC = () => {
       }
     }).catch(console.error);
 
-    loadAssets(1, assetSearch);
+    loadAssets(1, assetSearch, assetFilter, assetSort, assetOrder);
     loadFindings(1, findingSearch, findingSeverity);
   }, [activeTarget]);
 
@@ -109,24 +113,54 @@ export const App: React.FC = () => {
   const assetSearchRef = useRef(assetSearch);
   assetSearchRef.current = assetSearch;
 
+  const assetFilterRef = useRef<FilterChip>(assetFilter);
+  assetFilterRef.current = assetFilter;
+
+  const assetSortRef = useRef<string>(assetSort);
+  assetSortRef.current = assetSort;
+
+  const assetOrderRef = useRef<'asc' | 'desc'>(assetOrder);
+  assetOrderRef.current = assetOrder;
+
   const findingSearchRef = useRef(findingSearch);
   findingSearchRef.current = findingSearch;
 
   const findingSeverityRef = useRef(findingSeverity);
   findingSeverityRef.current = findingSeverity;
 
-  const loadAssets = async (page: number, search: string) => {
+  const loadAssets = async (
+    page: number,
+    search: string,
+    filter = assetFilterRef.current,
+    sort = assetSortRef.current,
+    order = assetOrderRef.current
+  ) => {
     const target = activeTargetRef.current;
     if (!target) return;
     setIsAssetsLoading(true);
     try {
-      const data = await assetService.listByTarget(target.id, page, 50, search);
+      const data = await assetService.listByTarget(target.id, page, 50, search, filter, sort, order);
       setAssetsData(data);
     } catch (err) {
       console.error('Failed to load assets', err);
     } finally {
       setIsAssetsLoading(false);
     }
+  };
+
+  const handleAssetFilterChange = (filter: FilterChip) => {
+    setAssetFilter(filter);
+    loadAssets(1, assetSearch, filter, assetSort, assetOrder);
+  };
+
+  const handleAssetSortChange = (field: string) => {
+    let nextOrder: 'asc' | 'desc' = 'desc';
+    if (assetSort === field) {
+      nextOrder = assetOrder === 'desc' ? 'asc' : 'desc';
+    }
+    setAssetSort(field);
+    setAssetOrder(nextOrder);
+    loadAssets(1, assetSearch, assetFilter, field, nextOrder);
   };
 
   const loadFindings = async (page: number, search: string, severity: string) => {
@@ -146,7 +180,7 @@ export const App: React.FC = () => {
   const handleSelectTab = (tab: 'tools' | 'assets' | 'findings' | 'terminal') => {
     setActiveTab(tab);
     if (tab === 'assets') {
-      loadAssets(1, assetSearch);
+      loadAssets(1, assetSearch, assetFilter, assetSort, assetOrder);
     } else if (tab === 'findings') {
       loadFindings(1, findingSearch, findingSeverity);
     }
@@ -193,7 +227,7 @@ export const App: React.FC = () => {
         } else if (msg.type === 'complete' || msg.type === 'status') {
           if (activeTargetRef.current) {
             scanService.listByTarget(activeTargetRef.current.id).then(setScans);
-            loadAssets(1, assetSearchRef.current);
+            loadAssets(1, assetSearchRef.current, assetFilterRef.current, assetSortRef.current, assetOrderRef.current);
             loadFindings(1, findingSearchRef.current, findingSeverityRef.current);
           }
           if (msg.status !== 'RUNNING') {
@@ -292,6 +326,9 @@ export const App: React.FC = () => {
     setActiveTarget(remaining.length > 0 ? remaining[0] : null);
     setScans([]);
     setAssetsData({ assets: [], total: 0, page: 1, limit: 50 });
+    setAssetFilter('all');
+    setAssetSort('priority');
+    setAssetOrder('desc');
     setActiveScanId(null);
     addToast({
       type: 'info',
@@ -333,12 +370,18 @@ export const App: React.FC = () => {
             assetsData={assetsData}
             currentPage={assetsData.page}
             searchQuery={assetSearch}
-            onPageChange={(p) => loadAssets(p, assetSearch)}
+            activeFilter={assetFilter}
+            sortField={assetSort}
+            sortOrder={assetOrder}
+            onPageChange={(p) => loadAssets(p, assetSearch, assetFilter, assetSort, assetOrder)}
             onSearchChange={(q) => {
               setAssetSearch(q);
-              loadAssets(1, q);
+              loadAssets(1, q, assetFilter, assetSort, assetOrder);
             }}
-            onRefresh={() => loadAssets(assetsData.page, assetSearch)}
+            onFilterChange={handleAssetFilterChange}
+            onSortChange={handleAssetSortChange}
+            onRefresh={() => loadAssets(assetsData.page, assetSearch, assetFilter, assetSort, assetOrder)}
+            onLaunchScan={handleExecuteTool}
             isLoading={isAssetsLoading}
           />
         )}

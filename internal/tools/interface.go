@@ -55,10 +55,11 @@ type ExecutionContext struct {
 	CustomArgs      []string
 }
 
-// Result holds discovered assets and security findings returned by a tool execution.
+// Result holds discovered assets, security findings, and web endpoints returned by a tool execution.
 type Result struct {
-	Assets   []models.Asset
-	Findings []models.Finding
+	Assets    []models.Asset
+	Findings  []models.Finding
+	Endpoints []models.Endpoint
 }
 
 // Tool defines the contract for a security tool integration in BHF.

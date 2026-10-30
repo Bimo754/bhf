@@ -11,9 +11,9 @@ Track defects, crashes, parser anomalies, or UI issues discovered during live ex
 | ID | Date | Recon Stage | Severity | Summary | Status |
 |---|---|---|---|---|---|
 | BUG-001 | 2026-10-26 | Core | Low | Terminal autoscroll pauses when clicking inside container | Closed |
-| BUG-002 | 2026-10-26 | Vulnerability Assessment | High | Nuclei scan duration takes an excessive amount of time to complete against multiple targets | Open |
-| BUG-003 | 2026-10-26 | Discovered Assets / UI | Medium | Discovered Assets pagination shows empty intermediate pages when filtering by Live Web | Open |
-| BUG-004 | 2026-10-30 | UI / Notifications | Low | Scan stop failure toast message is truncated preventing operator from reading error details | Open |
+| BUG-002 | 2026-10-26 | Vulnerability Assessment | High | Nuclei scan duration takes an excessive amount of time to complete against multiple targets | Resolved |
+| BUG-003 | 2026-10-26 | Discovered Assets / UI | Medium | Discovered Assets pagination shows empty intermediate pages when filtering by Live Web | Resolved |
+| BUG-004 | 2026-10-30 | UI / Notifications | Low | Scan stop failure toast message is truncated preventing operator from reading error details | Resolved |
 | BUG-005 | 2026-10-30 | Content Discovery | High | Arjun stability probe raises unhandled AttributeError on string response | Resolved |
 
 *Status Values*: `Open`, `Investigating`, `In Progress`, `Resolved`, `Closed`
@@ -29,28 +29,28 @@ Track defects, crashes, parser anomalies, or UI issues discovered during live ex
   - Scanning broad default template suites across multiple endpoints without template filtering.
   - Conservative concurrency (`-c 25`) and rate limits (`-rl 150`) combined with high timeout values on unresponsive endpoints.
   - Lack of targeted technology-based template filtering (e.g., matching detected technologies from `httpx` to specific Nuclei tags rather than running all templates).
-- **Target Resolution**:
-  - Implement intelligent template scoping (run tags matching detected tech stacks).
-  - Provide severity selection and category presets (e.g., `exposures`, `misconfigurations`, `cves`).
-  - Optimize concurrency and timeout thresholds for responsive execution.
+- **Resolution**:
+  - Calibrated default CLI flags in `internal/tools/nuclei.go` to `-s low,medium,high,critical`, `-tags cve,exposure,misconfig,takeover,vuln`, `-c 50`, `-rl 300`, `-timeout 5`, `-retries 1`, `-mhe 3`, `-stats`, `-si 10`.
+  - Added severity selection and high-value category presets in `RunConfigModal.tsx` allowing fast surgical audits without full template suite scans.
 
 #### [BUG-003] Discovered Assets Pagination and Filter Discrepancy
 - **Date**: 2026-10-26
 - **Recon Stage**: Discovered Assets / Web UI
-- **Tool Involved**: `AssetTable.tsx`, `AssetHandler.go`
+- **Tool Involved**: `AssetTable.tsx`, `AssetHandler.go`, `AssetRepo.go`
 - **Symptom**: When selecting the "Live Web" filter chip on the Discovered Assets page, the table displays 16 pages, but clicking next shows multiple empty pages before reaching pages with matching entries.
 - **Suspected Root Cause**:
   - The frontend applies client-side filtering (`filteredAssets = data.assets.filter(...)`) against a paginated slice returned by the backend (`LIMIT 50 OFFSET X`).
   - If page 1 contains 50 subdomains with no live status code, the client-side filter yields 0 rows, rendering a blank table for that page while the pagination counter still reflects total database assets.
-- **Target Resolution**:
-  - Move filter chips (`live`, `2xx`, `3xx`, `errors`, `priority`) to server-side query parameters in `GET /api/assets/target/{targetID}?filter=live`.
+- **Resolution**:
+  - Migrated filtering to server-side SQL queries (`ListByTarget` in `internal/database/asset_repo.go`) supporting `filter=live`, `2xx`, `3xx`, `errors`, `priority`, and `new`.
+  - Updated `AssetHandler.go` to parse `filter`, `sort`, and `order` query parameters, ensuring pagination metadata reflects exactly the filtered subset with zero intermediate blank pages.
+
 #### [BUG-004] Scan Stop Failure Truncated Toast Message
 - **Date**: 2026-10-30
 - **Recon Stage**: UI & Process Controls
 - **Component**: `Toast.tsx`
 - **Symptom**: When attempting to cancel or stop a scan that has already finished or failed, the UI renders an error toast notification whose message text is truncated with CSS ellipsis (`truncate`), hiding the full error explanation from the operator.
-- **Status**: Open (tracked, do not fix yet per operator request).
-- **Target Resolution**: Allow toast messages to wrap or expand on hover/click so long error messages can be fully read without breaking container boundaries.
+- **Resolution**: Replaced single-line CSS `truncate` with `break-words whitespace-pre-wrap max-h-48 overflow-y-auto` and widened `ToastContainer` to `max-w-md`, allowing multi-line error details to be read cleanly.
 
 #### [BUG-005] Arjun Stability Probe Unhandled String Exception
 - **Date**: 2026-10-30
@@ -69,8 +69,8 @@ Track capabilities, tool integrations, and workflow improvements that increase b
 | ID | Date | Methodology Stage | Proposed Capability / Tool | Hunter ROI / Justification | Status |
 |---|---|---|---|---|---|
 | FEAT-001 | 2026-10-26 | Live HTTP Probing | TLS certificate SAN extraction (tlsx) | Finds hidden dev/origin hostnames on single IP addresses | Implemented |
-| FEAT-002 | 2026-10-26 | Content Discovery | Custom header injection in Ffuf (Auth / Cookie) | Enables authenticated endpoint brute forcing | Planned |
-| FEAT-003 | 2026-10-26 | Crawling & Endpoints | Dedicated Endpoints table & UI tab | Separates crawled web routes from host assets; enables route search | Backlog |
+| FEAT-002 | 2026-10-26 | Content Discovery | Custom header injection in Ffuf (Auth / Cookie) | Enables authenticated endpoint brute forcing | Implemented |
+| FEAT-003 | 2026-10-26 | Crawling & Endpoints | Dedicated Endpoints table & UI tab | Separates crawled web routes from host assets; enables route search | Implemented |
 | FEAT-004 | 2026-10-26 | Execution Engine | Real-time streaming ingestion | Pipes stdout lines directly into DB and WS live during execution | Backlog |
 | FEAT-005 | 2026-10-26 | Crawling & Endpoints | JavaScript route & secret mining (jsluice) | Uncovers hidden API routes and leaked tokens from crawled JS | Implemented |
 | FEAT-006 | 2026-10-26 | HTTP Probing / Vuln | 403/401 bypass engine (nomore403) | Automates header tampering and path mutations on forbidden endpoints | Implemented |
@@ -80,11 +80,11 @@ Track capabilities, tool integrations, and workflow improvements that increase b
 | FEAT-010 | 2026-10-26 | Workflow Orchestration| Automated multi-stage pipeline chaining | 1-click chained scans across stages with operator approval | Backlog |
 | FEAT-011 | 2026-10-27 | Execution Engine | Subprocess group isolation & emergency kill switch | Prevents orphaned processes; allows 1-click abort of all running scans | Backlog |
 | FEAT-012 | 2026-10-27 | UI & Notifications | Persistent notification drawer & OS desktop bread alerts | Notifies hunter when scans complete/stop while working in other windows | Backlog |
-| FEAT-013 | 2026-10-30 | Discovered Assets / UI | Dedicated Priority Score & Star Rating Column | Moves priority stars and score values out of the host cell into a dedicated column for easier sorting and visual triage | Planned |
-| FEAT-014 | 2026-10-30 | Subdomain Enumeration | Subdomain Permutation DNS Pipeline (`alterx` piped to `dnsx`) | Eliminates unresolvable permutation garbage; only saves verified live DNS records | Planned |
-| FEAT-015 | 2026-10-30 | Discovered Assets / UI | Subdomain Hierarchical Sitemap & Tree View | Organizes crawled and fuzzed paths (`ffuf`, `katana`, `gau`, `jsluice`) per subdomain in an interactive tree view | Planned |
-| FEAT-016 | 2026-10-30 | Live HTTP Probing / UI | Dedicated Visual Reconnaissance Gallery Tab | Replaces row-by-row modal clicks with a full-screen screenshot card gallery for fast visual triage | Planned |
-| FEAT-017 | 2026-10-30 | Database & Architecture | Discovered Endpoints Schema Separation | Creates dedicated `endpoints` table to prevent crawled paths from overwriting host rows | Planned |
+| FEAT-013 | 2026-10-30 | Discovered Assets / UI | Dedicated Priority Score & Star Rating Column | Moves priority stars and score values out of the host cell into a dedicated column for easier sorting and visual triage | Implemented |
+| FEAT-014 | 2026-10-30 | Subdomain Enumeration | Subdomain Permutation DNS Pipeline (`alterx` piped to `dnsx`) | Eliminates unresolvable permutation garbage; only saves verified live DNS records | Implemented |
+| FEAT-015 | 2026-10-30 | Discovered Assets / UI | Subdomain Hierarchical Sitemap & Tree View | Organizes crawled and fuzzed paths (`ffuf`, `katana`, `gau`, `jsluice`) per subdomain in an interactive tree view | Implemented |
+| FEAT-016 | 2026-10-30 | Live HTTP Probing / UI | Dedicated Visual Reconnaissance Gallery Tab | Replaces row-by-row modal clicks with a full-screen screenshot card gallery for fast visual triage | Implemented |
+| FEAT-017 | 2026-10-30 | Database & Architecture | Discovered Endpoints Schema Separation | Creates dedicated `endpoints` table to prevent crawled paths from overwriting host rows | Implemented |
 
 *Status Values*: `Idea`, `Planned`, `In Progress`, `Implemented`, `Rejected`
 

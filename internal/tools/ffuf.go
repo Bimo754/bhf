@@ -116,7 +116,57 @@ func (t *FfufTool) IsInstalled() bool {
 
 func (t *FfufTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, error) {
 	var assets []models.Asset
+	var endpoints []models.Endpoint
+	seenURLs := make(map[string]bool)
+	seenHosts := make(map[string]bool)
 	now := time.Now().UTC()
+
+	addResult := func(rawURL string, statusCode int) {
+		rawURL = strings.TrimSpace(rawURL)
+		if rawURL == "" || seenURLs[rawURL] {
+			return
+		}
+		seenURLs[rawURL] = true
+
+		if u, err := url.Parse(rawURL); err == nil && u.Hostname() != "" {
+			if !IsInScope(u.Hostname(), execCtx.Target.Domain) {
+				return
+			}
+			path := u.Path
+			if path == "" {
+				path = "/"
+			}
+			if u.RawQuery != "" {
+				path += "?" + u.RawQuery
+			}
+
+			endpoints = append(endpoints, models.Endpoint{
+				ID:         uuid.New().String(),
+				TargetID:   execCtx.Target.ID,
+				ScanID:     execCtx.Scan.ID,
+				Host:       u.Hostname(),
+				URL:        rawURL,
+				Path:       path,
+				Method:     "GET",
+				StatusCode: statusCode,
+				SourceTool: t.Name(),
+				CreatedAt:  now,
+			})
+
+			if !seenHosts[u.Hostname()] {
+				seenHosts[u.Hostname()] = true
+				assets = append(assets, models.Asset{
+					ID:         uuid.New().String(),
+					TargetID:   execCtx.Target.ID,
+					ScanID:     execCtx.Scan.ID,
+					Host:       u.Hostname(),
+					URL:        rawURL,
+					StatusCode: statusCode,
+					CreatedAt:  now,
+				})
+			}
+		}
+	}
 
 	// 1. Try reading the structured JSON output
 	if execCtx.OutputFile != "" {
@@ -124,17 +174,7 @@ func (t *FfufTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, er
 			var parsed FfufJSON
 			if err := json.Unmarshal(data, &parsed); err == nil {
 				for _, res := range parsed.Results {
-					if u, err := url.Parse(res.URL); err == nil && u.Hostname() != "" {
-						assets = append(assets, models.Asset{
-							ID:         uuid.New().String(),
-							TargetID:   execCtx.Target.ID,
-							ScanID:     execCtx.Scan.ID,
-							Host:       u.Hostname(),
-							URL:        res.URL,
-							StatusCode: res.Status,
-							CreatedAt:  now,
-						})
-					}
+					addResult(res.URL, res.Status)
 				}
 			}
 			_ = os.Remove(execCtx.OutputFile)
@@ -143,23 +183,17 @@ func (t *FfufTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, er
 	}
 
 	// 2. Fallback to parsing rawOutput lines
-	if len(assets) == 0 {
+	if len(endpoints) == 0 {
 		for _, line := range rawOutput {
 			line = strings.TrimSpace(line)
 			if strings.HasPrefix(line, "http://") || strings.HasPrefix(line, "https://") {
-				if parsed, err := url.Parse(line); err == nil && parsed.Hostname() != "" {
-					assets = append(assets, models.Asset{
-						ID:        uuid.New().String(),
-						TargetID:  execCtx.Target.ID,
-						ScanID:    execCtx.Scan.ID,
-						Host:      parsed.Hostname(),
-						URL:       line,
-						CreatedAt: now,
-					})
-				}
+				addResult(line, 0)
 			}
 		}
 	}
 
-	return Result{Assets: assets}, nil
+	return Result{
+		Assets:    assets,
+		Endpoints: endpoints,
+	}, nil
 }

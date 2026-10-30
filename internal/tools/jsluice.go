@@ -101,6 +101,7 @@ func (t *JsluiceTool) IsInstalled() bool {
 func (t *JsluiceTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, error) {
 	var assets []models.Asset
 	var findings []models.Finding
+	var endpoints []models.Endpoint
 	seenAssets := make(map[string]bool)
 	seenFindings := make(map[string]bool)
 	now := time.Now().UTC()
@@ -124,6 +125,27 @@ func (t *JsluiceTool) Run(execCtx ExecutionContext, rawOutput []string) (Result,
 				host := strings.ToLower(parsed.Hostname())
 				if IsInScope(host, cleanRoot) && !seenAssets[extractedURL] {
 					seenAssets[extractedURL] = true
+					path := parsed.Path
+					if path == "" {
+						path = "/"
+					}
+					if parsed.RawQuery != "" {
+						path += "?" + parsed.RawQuery
+					}
+
+					endpoints = append(endpoints, models.Endpoint{
+						ID:         uuid.New().String(),
+						TargetID:   execCtx.Target.ID,
+						ScanID:     execCtx.Scan.ID,
+						Host:       host,
+						URL:        extractedURL,
+						Path:       path,
+						Method:     "GET",
+						Title:      "Discovered JS Route",
+						SourceTool: t.Name(),
+						CreatedAt:  now,
+					})
+
 					assets = append(assets, models.Asset{
 						ID:           uuid.New().String(),
 						TargetID:     execCtx.Target.ID,
@@ -193,7 +215,8 @@ func (t *JsluiceTool) Run(execCtx ExecutionContext, rawOutput []string) (Result,
 	}
 
 	return Result{
-		Assets:   assets,
-		Findings: findings,
+		Assets:    assets,
+		Findings:  findings,
+		Endpoints: endpoints,
 	}, nil
 }

@@ -73,12 +73,32 @@ func MigrateSchema(db *sql.DB) error {
 			FOREIGN KEY(scan_id) REFERENCES scans(id) ON DELETE CASCADE
 		);`,
 
+		`CREATE TABLE IF NOT EXISTS endpoints (
+			id TEXT PRIMARY KEY,
+			target_id TEXT NOT NULL,
+			scan_id TEXT DEFAULT '',
+			host TEXT NOT NULL,
+			url TEXT NOT NULL,
+			path TEXT NOT NULL,
+			method TEXT DEFAULT 'GET',
+			status_code INTEGER DEFAULT 0,
+			content_length INTEGER DEFAULT 0,
+			title TEXT DEFAULT '',
+			source_tool TEXT DEFAULT '',
+			created_at DATETIME NOT NULL,
+			FOREIGN KEY(target_id) REFERENCES targets(id) ON DELETE CASCADE,
+			UNIQUE(target_id, url)
+		);`,
+
 		`CREATE INDEX IF NOT EXISTS idx_scans_target_id ON scans(target_id);`,
 		`CREATE INDEX IF NOT EXISTS idx_assets_target_id ON assets(target_id);`,
 		`CREATE INDEX IF NOT EXISTS idx_assets_host ON assets(host);`,
 		`CREATE INDEX IF NOT EXISTS idx_logs_scan_id ON logs(scan_id);`,
 		`CREATE INDEX IF NOT EXISTS idx_findings_target_id ON findings(target_id);`,
 		`CREATE INDEX IF NOT EXISTS idx_findings_severity ON findings(severity);`,
+		`CREATE INDEX IF NOT EXISTS idx_endpoints_target_id ON endpoints(target_id);`,
+		`CREATE INDEX IF NOT EXISTS idx_endpoints_host ON endpoints(host);`,
+		`CREATE INDEX IF NOT EXISTS idx_endpoints_url ON endpoints(url);`,
 	}
 
 	for _, query := range queries {

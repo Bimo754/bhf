@@ -21,15 +21,16 @@ import (
 
 // ScanHandler manages tool execution requests and history.
 type ScanHandler struct {
-	scanRepo    *database.ScanRepo
-	targetRepo  *database.TargetRepo
-	assetRepo   *database.AssetRepo
-	findingRepo *database.FindingRepo
-	logRepo     *database.LogRepo
-	dispatcher  *engine.Dispatcher
-	runner      *engine.Runner
-	registry    *tools.Registry
-	hub         *engine.Hub
+	scanRepo     *database.ScanRepo
+	targetRepo   *database.TargetRepo
+	assetRepo    *database.AssetRepo
+	findingRepo  *database.FindingRepo
+	endpointRepo *database.EndpointRepo
+	logRepo      *database.LogRepo
+	dispatcher   *engine.Dispatcher
+	runner       *engine.Runner
+	registry     *tools.Registry
+	hub          *engine.Hub
 }
 
 // NewScanHandler creates a new ScanHandler.
@@ -38,6 +39,7 @@ func NewScanHandler(
 	targetRepo *database.TargetRepo,
 	assetRepo *database.AssetRepo,
 	findingRepo *database.FindingRepo,
+	endpointRepo *database.EndpointRepo,
 	logRepo *database.LogRepo,
 	dispatcher *engine.Dispatcher,
 	runner *engine.Runner,
@@ -45,15 +47,16 @@ func NewScanHandler(
 	hub *engine.Hub,
 ) *ScanHandler {
 	return &ScanHandler{
-		scanRepo:    scanRepo,
-		targetRepo:  targetRepo,
-		assetRepo:   assetRepo,
-		findingRepo: findingRepo,
-		logRepo:     logRepo,
-		dispatcher:  dispatcher,
-		runner:      runner,
-		registry:    registry,
-		hub:         hub,
+		scanRepo:     scanRepo,
+		targetRepo:   targetRepo,
+		assetRepo:    assetRepo,
+		findingRepo:  findingRepo,
+		endpointRepo: endpointRepo,
+		logRepo:      logRepo,
+		dispatcher:   dispatcher,
+		runner:       runner,
+		registry:     registry,
+		hub:          hub,
 	}
 }
 
@@ -189,6 +192,13 @@ func (h *ScanHandler) executeScanAsync(
 		if len(result.Findings) > 0 {
 			for i := range result.Findings {
 				_ = h.findingRepo.Insert(&result.Findings[i])
+			}
+		}
+		if len(result.Endpoints) > 0 && h.endpointRepo != nil {
+			for i := range result.Endpoints {
+				if tools.IsInScope(result.Endpoints[i].Host, target.Domain) {
+					_ = h.endpointRepo.Upsert(&result.Endpoints[i])
+				}
 			}
 		}
 	}

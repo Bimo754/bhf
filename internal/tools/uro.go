@@ -90,13 +90,15 @@ func (t *UroTool) IsInstalled() bool {
 
 func (t *UroTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, error) {
 	var assets []models.Asset
-	seen := make(map[string]bool)
+	var endpoints []models.Endpoint
+	seenURLs := make(map[string]bool)
+	seenHosts := make(map[string]bool)
 	now := time.Now().UTC()
 	cleanRoot := CleanDomain(execCtx.Target.Domain)
 
 	addURL := func(rawURL string) {
 		rawURL = strings.TrimSpace(rawURL)
-		if rawURL == "" || seen[rawURL] {
+		if rawURL == "" || seenURLs[rawURL] {
 			return
 		}
 
@@ -109,16 +111,39 @@ func (t *UroTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, err
 		if !IsInScope(host, cleanRoot) {
 			return
 		}
-		seen[rawURL] = true
+		seenURLs[rawURL] = true
 
-		assets = append(assets, models.Asset{
-			ID:        uuid.New().String(),
-			TargetID:  execCtx.Target.ID,
-			ScanID:    execCtx.Scan.ID,
-			Host:      host,
-			URL:       rawURL,
-			CreatedAt: now,
+		path := parsed.Path
+		if path == "" {
+			path = "/"
+		}
+		if parsed.RawQuery != "" {
+			path += "?" + parsed.RawQuery
+		}
+
+		endpoints = append(endpoints, models.Endpoint{
+			ID:         uuid.New().String(),
+			TargetID:   execCtx.Target.ID,
+			ScanID:     execCtx.Scan.ID,
+			Host:       host,
+			URL:        rawURL,
+			Path:       path,
+			Method:     "GET",
+			SourceTool: t.Name(),
+			CreatedAt:  now,
 		})
+
+		if !seenHosts[host] {
+			seenHosts[host] = true
+			assets = append(assets, models.Asset{
+				ID:        uuid.New().String(),
+				TargetID:  execCtx.Target.ID,
+				ScanID:    execCtx.Scan.ID,
+				Host:      host,
+				URL:       rawURL,
+				CreatedAt: now,
+			})
+		}
 	}
 
 	// 1. Read clean output file
@@ -138,7 +163,7 @@ func (t *UroTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, err
 	}
 
 	// 2. Fallback to stdout lines
-	if len(assets) == 0 {
+	if len(endpoints) == 0 {
 		for _, line := range rawOutput {
 			line = strings.TrimSpace(line)
 			if line != "" && strings.HasPrefix(line, "http") {
@@ -147,5 +172,8 @@ func (t *UroTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, err
 		}
 	}
 
-	return Result{Assets: assets}, nil
+	return Result{
+		Assets:    assets,
+		Endpoints: endpoints,
+	}, nil
 }

@@ -91,7 +91,9 @@ func (t *KatanaTool) IsInstalled() bool {
 
 func (t *KatanaTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, error) {
 	var assets []models.Asset
-	seen := make(map[string]bool)
+	var endpoints []models.Endpoint
+	seenURLs := make(map[string]bool)
+	seenHosts := make(map[string]bool)
 	now := time.Now().UTC()
 
 	parseURL := func(raw string, statusCode int) {
@@ -99,24 +101,49 @@ func (t *KatanaTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, 
 		if raw == "" || (!strings.HasPrefix(raw, "http://") && !strings.HasPrefix(raw, "https://")) {
 			return
 		}
-		if seen[raw] {
+		if seenURLs[raw] {
 			return
 		}
-		seen[raw] = true
+		seenURLs[raw] = true
 
 		if parsed, err := url.Parse(raw); err == nil && parsed.Hostname() != "" {
 			if !IsInScope(parsed.Hostname(), execCtx.Target.Domain) {
 				return
 			}
-			assets = append(assets, models.Asset{
+
+			path := parsed.Path
+			if path == "" {
+				path = "/"
+			}
+			if parsed.RawQuery != "" {
+				path += "?" + parsed.RawQuery
+			}
+
+			endpoints = append(endpoints, models.Endpoint{
 				ID:         uuid.New().String(),
 				TargetID:   execCtx.Target.ID,
 				ScanID:     execCtx.Scan.ID,
 				Host:       parsed.Hostname(),
 				URL:        raw,
+				Path:       path,
+				Method:     "GET",
 				StatusCode: statusCode,
+				SourceTool: t.Name(),
 				CreatedAt:  now,
 			})
+
+			if !seenHosts[parsed.Hostname()] {
+				seenHosts[parsed.Hostname()] = true
+				assets = append(assets, models.Asset{
+					ID:         uuid.New().String(),
+					TargetID:   execCtx.Target.ID,
+					ScanID:     execCtx.Scan.ID,
+					Host:       parsed.Hostname(),
+					URL:        raw,
+					StatusCode: statusCode,
+					CreatedAt:  now,
+				})
+			}
 		}
 	}
 
@@ -148,11 +175,14 @@ func (t *KatanaTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, 
 	}
 
 	// 2. Fallback to parsing rawOutput lines from terminal stream
-	if len(assets) == 0 {
+	if len(endpoints) == 0 {
 		for _, line := range rawOutput {
 			parseURL(line, 0)
 		}
 	}
 
-	return Result{Assets: assets}, nil
+	return Result{
+		Assets:    assets,
+		Endpoints: endpoints,
+	}, nil
 }

@@ -288,7 +288,7 @@ func (s *Server) callTool(name string, args map[string]any) (string, error) {
 		if targetID == "" {
 			return "", fmt.Errorf("target_id is required")
 		}
-		assets, _, err := s.assetRepo.ListByTarget(targetID, "", "", 1000, 0)
+		assets, _, err := s.assetRepo.ListByTarget(targetID, "", "", "", "", 1000, 0)
 		if err != nil {
 			return "", err
 		}

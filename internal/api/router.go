@@ -14,13 +14,14 @@ import (
 type RouterConfig struct {
 	TargetHandler  *TargetHandler
 	ScanHandler    *ScanHandler
-	AssetHandler   *AssetHandler
-	FindingHandler *FindingHandler
-	ToolHandler    *ToolHandler
-	WSHandler      *WSHandler
-	MCPServer      http.Handler
-	StaticFS       http.FileSystem
-	DataDir        string
+	AssetHandler    *AssetHandler
+	EndpointHandler *EndpointHandler
+	FindingHandler  *FindingHandler
+	ToolHandler     *ToolHandler
+	WSHandler       *WSHandler
+	MCPServer       http.Handler
+	StaticFS        http.FileSystem
+	DataDir         string
 }
 
 // NewRouter constructs a configured chi HTTP router.
@@ -65,6 +66,13 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		api.Route("/assets", func(a chi.Router) {
 			a.Get("/target/{targetID}", cfg.AssetHandler.ListByTarget)
 		})
+
+		// Discovered endpoints (FEAT-017)
+		if cfg.EndpointHandler != nil {
+			api.Route("/endpoints", func(e chi.Router) {
+				e.Get("/target/{targetID}", cfg.EndpointHandler.ListByTarget)
+			})
+		}
 
 		// Security findings
 		api.Route("/findings", func(f chi.Router) {

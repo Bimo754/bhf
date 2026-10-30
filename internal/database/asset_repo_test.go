@@ -82,11 +82,29 @@ func TestAssetRepoPriorityAndStats(t *testing.T) {
 	}
 
 	// Verify priority ordering: a2 must be first
-	assets, _, err := assetRepo.ListByTarget(target.ID, "", "", 10, 0)
+	assets, _, err := assetRepo.ListByTarget(target.ID, "", "", "priority", "desc", 10, 0)
 	if err != nil {
 		t.Fatalf("failed to list assets: %v", err)
 	}
 	if len(assets) < 2 || assets[0].Host != "admin-api.target.com" {
 		t.Errorf("expected high-priority admin-api.target.com first, got %v", assets[0].Host)
+	}
+
+	// Verify reverse priority ordering: a1 must be first when order is asc
+	assetsAsc, _, err := assetRepo.ListByTarget(target.ID, "", "", "priority", "asc", 10, 0)
+	if err != nil {
+		t.Fatalf("failed to list assets ascending: %v", err)
+	}
+	if len(assetsAsc) < 2 || assetsAsc[0].Host != "static.target.com" {
+		t.Errorf("expected static.target.com first in ascending priority, got %v", assetsAsc[0].Host)
+	}
+
+	// Verify server-side filter: live filter returns 2xx/live assets
+	filtered, totalFiltered, err := assetRepo.ListByTarget(target.ID, "", "errors", "priority", "desc", 10, 0)
+	if err != nil {
+		t.Fatalf("failed to list filtered assets: %v", err)
+	}
+	if totalFiltered != 1 || len(filtered) != 1 || filtered[0].StatusCode != 403 {
+		t.Errorf("expected 1 error asset with 403, got %d (total %d)", len(filtered), totalFiltered)
 	}
 }

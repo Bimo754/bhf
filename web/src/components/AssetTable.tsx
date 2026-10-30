@@ -1,34 +1,45 @@
-import React, { useState, useMemo } from 'react';
-import { ExternalLink, Search, ChevronLeft, ChevronRight, RefreshCw, Copy, Check, Download, Globe, Camera, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { ExternalLink, Search, ChevronLeft, ChevronRight, RefreshCw, Copy, Check, Download, Globe, Camera, X, ArrowUp, ArrowDown } from 'lucide-react';
 import { Asset, PaginatedAssets } from '../types/asset';
 import { Button } from './Button';
+
+export type FilterChip = 'all' | 'priority' | 'live' | '2xx' | '3xx' | 'errors';
 
 interface AssetTableProps {
   data: PaginatedAssets;
   currentPage: number;
   searchQuery: string;
+  activeFilter?: FilterChip;
+  sortField?: string;
+  sortOrder?: 'asc' | 'desc';
   onPageChange: (page: number) => void;
   onSearchChange: (search: string) => void;
+  onFilterChange?: (filter: FilterChip) => void;
+  onSortChange?: (field: string) => void;
   onRefresh: () => void;
   isLoading?: boolean;
 }
-
-type FilterChip = 'all' | 'priority' | 'live' | '2xx' | '3xx' | 'errors';
 
 export const AssetTable: React.FC<AssetTableProps> = ({
   data,
   currentPage,
   searchQuery,
+  activeFilter = 'all',
+  sortField = 'priority',
+  sortOrder = 'desc',
   onPageChange,
   onSearchChange,
+  onFilterChange,
+  onSortChange,
   onRefresh,
   isLoading = false,
 }) => {
   const [localSearch, setLocalSearch] = useState(searchQuery);
-  const [activeFilter, setActiveFilter] = useState<FilterChip>('all');
+  const [localFilter, setLocalFilter] = useState<FilterChip>('all');
   const [copiedAction, setCopiedAction] = useState<'hosts' | 'urls' | null>(null);
   const [previewScreenshot, setPreviewScreenshot] = useState<string | null>(null);
 
+  const effectiveFilter = onFilterChange ? activeFilter : localFilter;
   const totalPages = Math.ceil(data.total / data.limit) || 1;
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -36,25 +47,36 @@ export const AssetTable: React.FC<AssetTableProps> = ({
     onSearchChange(localSearch);
   };
 
-  const filteredAssets = useMemo(() => {
-    if (activeFilter === 'all') return data.assets;
-    if (activeFilter === 'priority') {
-      return data.assets.filter((a) => (a.priority_score && a.priority_score >= 30));
+  const handleFilterClick = (chip: FilterChip) => {
+    if (onFilterChange) {
+      onFilterChange(chip);
+    } else {
+      setLocalFilter(chip);
     }
-    if (activeFilter === 'live') {
-      return data.assets.filter((a) => (a.status_code && a.status_code > 0) || a.url);
-    }
-    if (activeFilter === '2xx') {
-      return data.assets.filter((a) => a.status_code && a.status_code >= 200 && a.status_code < 300);
-    }
-    if (activeFilter === '3xx') {
-      return data.assets.filter((a) => a.status_code && a.status_code >= 300 && a.status_code < 400);
-    }
-    if (activeFilter === 'errors') {
-      return data.assets.filter((a) => a.status_code && a.status_code >= 400);
-    }
-    return data.assets;
-  }, [data.assets, activeFilter]);
+  };
+
+  // When onFilterChange is supplied, data.assets is already filtered server-side by SQLite
+  const assetsToRender = onFilterChange
+    ? data.assets
+    : (() => {
+        if (effectiveFilter === 'all') return data.assets;
+        if (effectiveFilter === 'priority') {
+          return data.assets.filter((a) => (a.priority_score && a.priority_score >= 30));
+        }
+        if (effectiveFilter === 'live') {
+          return data.assets.filter((a) => (a.status_code && a.status_code > 0) || a.url);
+        }
+        if (effectiveFilter === '2xx') {
+          return data.assets.filter((a) => a.status_code && a.status_code >= 200 && a.status_code < 300);
+        }
+        if (effectiveFilter === '3xx') {
+          return data.assets.filter((a) => a.status_code && a.status_code >= 300 && a.status_code < 400);
+        }
+        if (effectiveFilter === 'errors') {
+          return data.assets.filter((a) => a.status_code && a.status_code >= 400);
+        }
+        return data.assets;
+      })();
 
   const handleCopyHosts = () => {
     const hosts = Array.from(new Set(data.assets.map((a) => a.host).filter(Boolean))).join('\n');
@@ -84,6 +106,36 @@ export const AssetTable: React.FC<AssetTableProps> = ({
     a.download = `bhf_assets_export_p${currentPage}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const getPriorityBadge = (score: number = 0) => {
+    if (!score || score <= 0) {
+      return <span className="text-zinc-600 font-mono text-[11px]">-</span>;
+    }
+    let badgeStyle = 'text-[#8b949e] bg-[#8b949e]/10 border-[#8b949e]/30';
+    let stars = '★';
+    let starColor = '#8b949e';
+
+    if (score >= 40) {
+      badgeStyle = 'text-[#f0883e] bg-[#f0883e]/15 border-[#f0883e]/50';
+      stars = '★★★';
+      starColor = '#f0883e';
+    } else if (score >= 20) {
+      badgeStyle = 'text-[#d29922] bg-[#d29922]/15 border-[#d29922]/50';
+      stars = '★★';
+      starColor = '#d29922';
+    }
+
+    return (
+      <div className="flex items-center space-x-1.5 font-mono">
+        <span className="text-xs tracking-tighter" style={{ color: starColor }}>
+          {stars}
+        </span>
+        <span className={`px-1.5 py-0.5 rounded border text-[10px] font-bold ${badgeStyle}`}>
+          {score}
+        </span>
+      </div>
+    );
   };
 
   const getStatusBadge = (code?: number) => {
@@ -170,21 +222,21 @@ export const AssetTable: React.FC<AssetTableProps> = ({
               code_4xx_5xx: 0,
             };
 
-            const chips = [
-              { key: 'all' as const, label: `All (${stats.total})` },
-              { key: 'priority' as const, label: `Priority Targets (${stats.high_priority || 0})` },
-              { key: 'live' as const, label: `Live Web (${stats.live})` },
-              { key: '2xx' as const, label: `2xx OK (${stats.code_2xx})` },
-              { key: '3xx' as const, label: `3xx Redirect (${stats.code_3xx})` },
-              { key: 'errors' as const, label: `4xx / 5xx (${stats.code_4xx_5xx})` },
+            const chips: { key: FilterChip; label: string }[] = [
+              { key: 'all', label: `All (${stats.total})` },
+              { key: 'priority', label: `Priority Targets (${stats.high_priority || 0})` },
+              { key: 'live', label: `Live Web (${stats.live})` },
+              { key: '2xx', label: `2xx OK (${stats.code_2xx})` },
+              { key: '3xx', label: `3xx Redirect (${stats.code_3xx})` },
+              { key: 'errors', label: `4xx / 5xx (${stats.code_4xx_5xx})` },
             ];
 
             return chips.map((chip) => (
               <button
                 key={chip.key}
-                onClick={() => setActiveFilter(chip.key)}
+                onClick={() => handleFilterClick(chip.key)}
                 className={`px-2 py-0.5 rounded text-[11px] transition-colors shrink-0 ${
-                  activeFilter === chip.key
+                  effectiveFilter === chip.key
                     ? 'bg-[#21262d] text-zinc-100 font-semibold border border-[#30363d]'
                     : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#161b22]'
                 }`}
@@ -196,7 +248,7 @@ export const AssetTable: React.FC<AssetTableProps> = ({
         </div>
 
         <div className="text-zinc-500 text-[11px] hidden sm:block">
-          Showing <span className="text-zinc-300 font-semibold">{filteredAssets.length}</span> of{' '}
+          Showing <span className="text-zinc-300 font-semibold">{assetsToRender.length}</span> of{' '}
           <span className="text-zinc-300 font-semibold">{data.total}</span> assets
         </div>
       </div>
@@ -206,6 +258,19 @@ export const AssetTable: React.FC<AssetTableProps> = ({
         <table className="w-full text-left border-collapse text-xs">
           <thead>
             <tr className="border-b border-[#30363d] bg-[#0d1117] text-zinc-400 uppercase tracking-wider font-mono text-[10px]">
+              {/* Dedicated Priority Column (FEAT-013) */}
+              <th
+                className="py-2.5 px-3 cursor-pointer select-none hover:text-zinc-200 transition"
+                onClick={() => onSortChange && onSortChange('priority')}
+                title="Sort by priority score"
+              >
+                <div className="flex items-center space-x-1">
+                  <span>Priority</span>
+                  {sortField === 'priority' && (
+                    sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-400" /> : <ArrowDown className="w-3 h-3 text-blue-400" />
+                  )}
+                </div>
+              </th>
               <th className="py-2.5 px-3">Host & Endpoint</th>
               <th className="py-2.5 px-3">Status</th>
               <th className="py-2.5 px-3">Port / IP</th>
@@ -215,20 +280,25 @@ export const AssetTable: React.FC<AssetTableProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-[#21262d] font-mono">
-            {filteredAssets.length === 0 ? (
+            {assetsToRender.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-10 text-center text-zinc-500 italic">
+                <td colSpan={7} className="py-10 text-center text-zinc-500 italic">
                   {data.total === 0
                     ? 'No assets discovered for this scope yet. Run tools from the Methodology pipeline to populate findings.'
                     : 'No assets match the active filter criteria.'}
                 </td>
               </tr>
             ) : (
-              filteredAssets.map((asset: Asset) => {
+              assetsToRender.map((asset: Asset) => {
                 const liveURL = asset.url || (asset.status_code ? `https://${asset.host}` : null);
 
                 return (
                   <tr key={asset.id} className="hover:bg-[#21262d]/40 transition-colors">
+                    {/* Dedicated Priority Column (FEAT-013) */}
+                    <td className="py-2 px-3">
+                      {getPriorityBadge(asset.priority_score)}
+                    </td>
+
                     {/* Host & URL */}
                     <td className="py-2 px-3 font-semibold text-zinc-200">
                       <div className="flex flex-col max-w-md">
@@ -245,11 +315,6 @@ export const AssetTable: React.FC<AssetTableProps> = ({
                           ) : (
                             <span className="truncate">{asset.host}</span>
                           )}
-                          {asset.priority_score && asset.priority_score >= 30 ? (
-                            <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-amber-950/70 text-amber-300 border border-amber-700/70 shrink-0">
-                              ★ {asset.priority_score}
-                            </span>
-                          ) : null}
                         </div>
                         {asset.url && asset.url !== `https://${asset.host}` && asset.url !== `http://${asset.host}` && (
                           <span className="text-[11px] text-zinc-500 truncate font-normal">

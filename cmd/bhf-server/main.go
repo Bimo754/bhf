@@ -46,6 +46,7 @@ func main() {
 	scanRepo := database.NewScanRepo(db)
 	assetRepo := database.NewAssetRepo(db)
 	findingRepo := database.NewFindingRepo(db)
+	endpointRepo := database.NewEndpointRepo(db)
 	logRepo := database.NewLogRepo(db)
 
 	// Engine & Streaming
@@ -82,8 +83,9 @@ func main() {
 
 	// Handlers
 	targetHandler := api.NewTargetHandler(targetRepo)
-	scanHandler := api.NewScanHandler(scanRepo, targetRepo, assetRepo, findingRepo, logRepo, dispatcher, runner, registry, hub)
+	scanHandler := api.NewScanHandler(scanRepo, targetRepo, assetRepo, findingRepo, endpointRepo, logRepo, dispatcher, runner, registry, hub)
 	assetHandler := api.NewAssetHandler(assetRepo)
+	endpointHandler := api.NewEndpointHandler(endpointRepo)
 	findingHandler := api.NewFindingHandler(findingRepo)
 	toolHandler := api.NewToolHandler(registry)
 	wsHandler := api.NewWSHandler(hub)
@@ -104,15 +106,16 @@ func main() {
 	}
 
 	router := api.NewRouter(api.RouterConfig{
-		TargetHandler:  targetHandler,
-		ScanHandler:    scanHandler,
-		AssetHandler:   assetHandler,
-		FindingHandler: findingHandler,
-		ToolHandler:    toolHandler,
-		WSHandler:      wsHandler,
-		MCPServer:      mcpServer,
-		StaticFS:       staticFS,
-		DataDir:        cfg.DataDir,
+		TargetHandler:   targetHandler,
+		ScanHandler:     scanHandler,
+		AssetHandler:    assetHandler,
+		EndpointHandler: endpointHandler,
+		FindingHandler:  findingHandler,
+		ToolHandler:     toolHandler,
+		WSHandler:       wsHandler,
+		MCPServer:       mcpServer,
+		StaticFS:        staticFS,
+		DataDir:         cfg.DataDir,
 	})
 
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)

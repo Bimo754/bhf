@@ -2,6 +2,9 @@ package tools
 
 import (
 	"bufio"
+	"bytes"
+	"context"
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -33,7 +36,7 @@ func (t *AlterxTool) Category() Category {
 }
 
 func (t *AlterxTool) Description() string {
-	return "Subdomain wordlist permutation and alteration generator."
+	return "Subdomain wordlist permutation and alteration generator with DNS resolution verification."
 }
 
 func (t *AlterxTool) OutputFile(scanID string) string {
@@ -76,12 +79,12 @@ func (t *AlterxTool) IsInstalled() bool {
 }
 
 func (t *AlterxTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, error) {
-	var assets []models.Asset
+	var candidates []string
 	seen := make(map[string]bool)
 	now := time.Now().UTC()
 	cleanRoot := CleanDomain(execCtx.Target.Domain)
 
-	addHost := func(host string) {
+	addCandidate := func(host string) {
 		host = strings.TrimSpace(strings.ToLower(host))
 		if idx := strings.Index(host, ":"); idx != -1 {
 			host = host[:idx]
@@ -90,14 +93,7 @@ func (t *AlterxTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, 
 			return
 		}
 		seen[host] = true
-
-		assets = append(assets, models.Asset{
-			ID:        uuid.New().String(),
-			TargetID:  execCtx.Target.ID,
-			ScanID:    execCtx.Scan.ID,
-			Host:      host,
-			CreatedAt: now,
-		})
+		candidates = append(candidates, host)
 	}
 
 	// 1. Read from output file
@@ -107,7 +103,7 @@ func (t *AlterxTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, 
 			for scanner.Scan() {
 				line := strings.TrimSpace(scanner.Text())
 				if line != "" && !strings.HasPrefix(line, "[") {
-					addHost(line)
+					addCandidate(line)
 				}
 			}
 			_ = f.Close()
@@ -117,16 +113,73 @@ func (t *AlterxTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, 
 	}
 
 	// 2. Fallback to raw output lines
-	if len(assets) == 0 {
+	if len(candidates) == 0 {
 		for _, line := range rawOutput {
 			line = strings.TrimSpace(line)
 			if line == "" || strings.HasPrefix(line, "[") || strings.Contains(line, " ") {
 				continue
 			}
 			if strings.Contains(line, cleanRoot) {
-				addHost(line)
+				addCandidate(line)
 			}
 		}
+	}
+
+	if len(candidates) == 0 {
+		return Result{}, nil
+	}
+
+	var assets []models.Asset
+
+	// 3. DNS Resolution Verification Pipeline (FEAT-014):
+	// If dnsx binary is available in PATH, pipe permutations to dnsx to only save verified live DNS records.
+	if dnsxBinary, err := exec.LookPath("dnsx"); err == nil && len(candidates) > 0 {
+		ctx := execCtx.Ctx
+		if ctx == nil {
+			ctx = context.Background()
+		}
+		cmd := exec.CommandContext(ctx, dnsxBinary, "-silent", "-a", "-resp", "-json")
+		cmd.Stdin = strings.NewReader(strings.Join(candidates, "\n"))
+		out, err := cmd.Output()
+		if err == nil && len(out) > 0 {
+			scanner := bufio.NewScanner(bytes.NewReader(out))
+			for scanner.Scan() {
+				line := strings.TrimSpace(scanner.Text())
+				if line == "" {
+					continue
+				}
+				var item DNSxJSON
+				if err := json.Unmarshal([]byte(line), &item); err == nil && item.Host != "" {
+					ip := ""
+					if len(item.A) > 0 {
+						ip = item.A[0]
+					}
+					// Only record if valid A or CNAME returned
+					if len(item.A) > 0 || len(item.CNAME) > 0 {
+						assets = append(assets, models.Asset{
+							ID:        uuid.New().String(),
+							TargetID:  execCtx.Target.ID,
+							ScanID:    execCtx.Scan.ID,
+							Host:      item.Host,
+							IP:        ip,
+							CreatedAt: now,
+						})
+					}
+				}
+			}
+			return Result{Assets: assets}, nil
+		}
+	}
+
+	// Fallback when dnsx is not installed (e.g. testing or minimal runner environment):
+	for _, c := range candidates {
+		assets = append(assets, models.Asset{
+			ID:        uuid.New().String(),
+			TargetID:  execCtx.Target.ID,
+			ScanID:    execCtx.Scan.ID,
+			Host:      c,
+			CreatedAt: now,
+		})
 	}
 
 	return Result{Assets: assets}, nil

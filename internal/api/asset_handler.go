@@ -33,6 +33,8 @@ func (h *AssetHandler) ListByTarget(w http.ResponseWriter, r *http.Request) {
 	targetID := chi.URLParam(r, "targetID")
 	search := r.URL.Query().Get("search")
 	filter := r.URL.Query().Get("filter")
+	sortBy := r.URL.Query().Get("sort")
+	order := r.URL.Query().Get("order")
 
 	page := 1
 	if p, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil && p > 0 {
@@ -45,7 +47,7 @@ func (h *AssetHandler) ListByTarget(w http.ResponseWriter, r *http.Request) {
 	}
 
 	offset := (page - 1) * limit
-	assets, total, err := h.repo.ListByTarget(targetID, search, filter, limit, offset)
+	assets, total, err := h.repo.ListByTarget(targetID, search, filter, sortBy, order, limit, offset)
 	if err != nil {
 		ErrorJSON(w, http.StatusInternalServerError, err.Error())
 		return

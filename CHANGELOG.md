@@ -38,12 +38,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `s3scanner`: Cloud storage bucket reconnaissance scanner for public Amazon S3, Google Cloud, and Azure Blobs.
 - Added Phase 6 visual reconnaissance and screenshot triage:
   - `gowitness`: Headless browser screenshot utility for rapid visual triage of live web applications.
+- Added Discovered Endpoints Schema Separation (`FEAT-017`):
+  - Created dedicated `endpoints` SQLite table with foreign keys, compound unique constraints, and indexes.
+  - Implemented `EndpointRepo` and `EndpointHandler` (`GET /api/endpoints/target/{targetID}`).
+  - Routed crawler and fuzzer outputs (`katana`, `ffuf`, `gau`, `uro`, `jsluice`) to `endpoints` table, preventing host row URL overwrites.
+- Added Subdomain Hierarchical Sitemap & Tree View (`FEAT-015`):
+  - Interactive tree view (`SitemapTree.tsx`) grouping endpoints by subdomain with HTTP method tags, status code badges, and path search.
+- Added Dedicated Visual Reconnaissance Gallery Tab (`FEAT-016`):
+  - Visual gallery grid (`VisualGallery.tsx`) rendering screenshot thumbnail cards with lightbox image preview and direct Nuclei scan launch.
+- Added Subdomain Permutation DNS Pipeline (`FEAT-014`):
+  - Piped `alterx` permutation generation directly into active `dnsx` resolution, ensuring only valid resolving A and CNAME records are recorded.
+- Added Custom Header & Cookie Injection for Ffuf (`FEAT-002`):
+  - Configurable `-H "Header: value"` and `-b "cookie"` inputs in `RunConfigModal.tsx` for authenticated directory and API fuzzing.
+- Added Dedicated Priority Score & Star Rating Column (`FEAT-013`):
+  - Dedicated column with star ratings, tier badges, and 1-click server-side sorting (`priority_score`).
 
 ### Changed
 - Standardized UI to developer-grade GitHub Dark theme (`#0d1117`) with zero AI glowing neon hues and zero emojis.
 - Enforced strict Single Responsibility Principle across all Go backend and TypeScript frontend files.
 - Enhanced `.gitignore` with comprehensive patterns for Python bytecode, virtual environments, logs, and build artifacts.
 - Removed all emojis from project documentation and user interface components.
+- Added view mode toggle `[ Table View | Visual Gallery | Sitemap Tree ]` to `AssetsView.tsx`.
+- Calibrated default `nuclei` CLI flags (`-s low,medium,high,critical`, `-tags cve,exposure,misconfig,takeover,vuln`, `-c 50`, `-rl 300`, `-timeout 5`, `-retries 1`, `-mhe 3`, `-stats`, `-si 10`) to eliminate scan stalling (`BUG-002`).
 
 ### Fixed
 - Fixed process cancellation handling to ensure all discovered assets and findings are parsed and preserved in SQLite when a scan is halted.
@@ -64,8 +80,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `nomore403` flag syntax error by replacing `-max-rate 30` with `-m 30 --no-banner` and mounting payloads at `/opt/nomore403/payloads`.
 - Fixed `corsy` "no valid urls to test" error by piping targets to stdin and supplying `-u targets[0]`.
 - Fixed `s3scanner` command failure by eliminating the invalid `scan` subcommand and using `-bucket-file` with `-json`.
-- Recorded `BUG-004` (truncated stop scan toast message) and `FEAT-013` (dedicated priority score and star rating column) in `personal.md`.
+- Fixed `BUG-002` (Nuclei scan excessive execution duration) by optimizing CLI flags and adding category/severity presets in scan launcher.
+- Fixed `BUG-003` (Discovered Assets pagination intermediate empty pages) by migrating live/status/priority filtering to server-side SQL queries.
+- Fixed `BUG-004` (Scan stop failure toast message truncated) by wrapping text and expanding toast container dimensions.
 
 ### Tested
-- Database integration test suite (`asset_repo_test.go`, `finding_repo_test.go`).
+- Database integration test suite (`asset_repo_test.go`, `endpoint_repo_test.go`, `finding_repo_test.go`).
+- HTTP API integration test suite (`api_test.go`).
 - MCP protocol test suite (`server_test.go`).

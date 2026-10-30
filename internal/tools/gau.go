@@ -50,28 +50,58 @@ func (t *GauTool) IsInstalled() bool {
 
 func (t *GauTool) Run(execCtx ExecutionContext, rawOutput []string) (Result, error) {
 	var assets []models.Asset
+	var endpoints []models.Endpoint
+	seenURLs := make(map[string]bool)
+	seenHosts := make(map[string]bool)
 	now := time.Now().UTC()
 
 	for _, line := range rawOutput {
 		line = strings.TrimSpace(line)
-		if line == "" {
+		if line == "" || seenURLs[line] {
 			continue
 		}
+		seenURLs[line] = true
 
 		parsed, err := url.Parse(line)
 		if err != nil || parsed.Hostname() == "" || !IsInScope(parsed.Hostname(), execCtx.Target.Domain) {
 			continue
 		}
 
-		assets = append(assets, models.Asset{
-			ID:        uuid.New().String(),
-			TargetID:  execCtx.Target.ID,
-			ScanID:    execCtx.Scan.ID,
-			Host:      parsed.Hostname(),
-			URL:       line,
-			CreatedAt: now,
+		path := parsed.Path
+		if path == "" {
+			path = "/"
+		}
+		if parsed.RawQuery != "" {
+			path += "?" + parsed.RawQuery
+		}
+
+		endpoints = append(endpoints, models.Endpoint{
+			ID:         uuid.New().String(),
+			TargetID:   execCtx.Target.ID,
+			ScanID:     execCtx.Scan.ID,
+			Host:       parsed.Hostname(),
+			URL:        line,
+			Path:       path,
+			Method:     "GET",
+			SourceTool: t.Name(),
+			CreatedAt:  now,
 		})
+
+		if !seenHosts[parsed.Hostname()] {
+			seenHosts[parsed.Hostname()] = true
+			assets = append(assets, models.Asset{
+				ID:        uuid.New().String(),
+				TargetID:  execCtx.Target.ID,
+				ScanID:    execCtx.Scan.ID,
+				Host:      parsed.Hostname(),
+				URL:       line,
+				CreatedAt: now,
+			})
+		}
 	}
 
-	return Result{Assets: assets}, nil
+	return Result{
+		Assets:    assets,
+		Endpoints: endpoints,
+	}, nil
 }
