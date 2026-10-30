@@ -35,7 +35,7 @@ const METHODOLOGY_STAGES: MethodologyStage[] = [
   },
   {
     title: 'Crawling & URL Discovery',
-    toolNames: ['katana', 'gau'],
+    toolNames: ['katana', 'gau', 'uro', 'jsluice'],
   },
   {
     title: 'Content Discovery',

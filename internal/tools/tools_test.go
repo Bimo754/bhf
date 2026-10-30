@@ -270,4 +270,53 @@ func TestWafw00fParser(t *testing.T) {
 	}
 }
 
+func TestUroParser(t *testing.T) {
+	tool := tools.NewUroTool()
+	execCtx := newTestContext("target.com")
+
+	rawOutput := []string{
+		"https://target.com/api/v1/users?id=1",
+		"https://sub.target.com/login",
+		"https://out-of-scope.com/test",
+	}
+
+	result, err := tool.Run(execCtx, rawOutput)
+	if err != nil {
+		t.Fatalf("Uro Run returned unexpected error: %v", err)
+	}
+
+	if len(result.Assets) != 2 {
+		t.Fatalf("expected 2 in-scope deduplicated assets, got %d", len(result.Assets))
+	}
+}
+
+func TestJsluiceParser(t *testing.T) {
+	tool := tools.NewJsluiceTool()
+	execCtx := newTestContext("target.com")
+
+	rawOutput := []string{
+		`{"url":"/api/v2/internal/auth","type":"relative","filename":"https://target.com/main.js"}`,
+		`{"kind":"aws-access-key","match":"AKIAIOSFODNN7EXAMPLE","filename":"https://target.com/main.js","severity":"high"}`,
+		`{"url":"https://evil.com/leak","type":"absolute"}`, // out of scope
+	}
+
+	result, err := tool.Run(execCtx, rawOutput)
+	if err != nil {
+		t.Fatalf("Jsluice Run returned unexpected error: %v", err)
+	}
+
+	if len(result.Assets) != 1 {
+		t.Fatalf("expected 1 in-scope route asset, got %d", len(result.Assets))
+	}
+
+	if len(result.Findings) != 1 {
+		t.Fatalf("expected 1 secret finding, got %d", len(result.Findings))
+	}
+
+	if result.Findings[0].Severity != models.SeverityCritical {
+		t.Errorf("expected Critical severity for AWS key, got %v", result.Findings[0].Severity)
+	}
+}
+
+
 

@@ -27,6 +27,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Phase 2 HTTP probing and origin discovery tools:
   - `tlsx`: TLS/SSL certificate grabber, Subject Alternative Name (SAN) extractor, and JARM fingerprinting.
   - `wafw00f`: Web Application Firewall (WAF) detector and fingerprinting utility with uv isolation.
+- Added Phase 3 URL deduplication and JavaScript mining tools:
+  - `uro`: URL decluttering and deduplication filter for cleaning crawler archives with uv isolation.
+  - `jsluice`: Tree-sitter AST JavaScript parser for extracting hidden API routes and leaked secrets.
 
 ### Changed
 - Standardized UI to developer-grade GitHub Dark theme (`#0d1117`) with zero AI glowing neon hues and zero emojis.

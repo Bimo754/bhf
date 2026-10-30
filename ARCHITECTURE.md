@@ -116,6 +116,7 @@ bhf/
 │       ├── gau.go                # GetAllURLs archive extractor
 │       ├── httpx.go              # Httpx live probing and technology parser
 │       ├── interface.go          # Tool interface, Category, IsInScope, CleanDomain
+│       ├── jsluice.go            # Jsluice tree-sitter AST JavaScript route and secret parser
 │       ├── katana.go             # Katana crawler and endpoint extractor
 │       ├── naabu.go              # Naabu port scanner integration
 │       ├── nuclei.go             # Nuclei vulnerability scanner and JSONL parser
@@ -124,6 +125,7 @@ bhf/
 │       ├── subzy.go              # Subzy subdomain takeover vulnerability checker
 │       ├── theharvester.go       # theHarvester OSINT gatherer (uv isolation)
 │       ├── tlsx.go               # Tlsx TLS SAN and certificate intelligence tool
+│       ├── uro.go                # Uro URL decluttering and deduplication filter (uv isolation)
 │       └── wafw00f.go            # Wafw00f WAF detection and fingerprinting tool (uv isolation)
 │   ├── web/                      # Frontend single-page application
 │   │   ├── embed.go              # Go embed.FS declaration for dist/
@@ -166,6 +168,8 @@ bhf/
 │   4. **Crawling and URL Discovery**:
 │      - `katana`: Spider dynamic endpoints, JS files, and API routes with `-fs dn` scope protection.
 │      - `gau`: Fetches known endpoints from Wayback Machine, AlienVault, and Common Crawl.
+│      - `uro`: Declutters and deduplicates crawled URL archives, stripping duplicate parameters.
+│      - `jsluice`: Parses JavaScript bundles with tree-sitter AST to extract hidden routes and leaked secrets.
 │   5. **Content Discovery and Fuzzing**:
 │      - `ffuf`: Directory and endpoint brute-forcing with calibrated rate limits against discovered live web targets.
 │   6. **Vulnerability Assessment**:

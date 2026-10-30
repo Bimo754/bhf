@@ -31,7 +31,8 @@ RUN go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest 
     go install -v github.com/projectdiscovery/alterx/cmd/alterx@latest && \
     go install -v github.com/pentestmonkey/subzy@latest && \
     go install -v github.com/projectdiscovery/asnmap/cmd/asnmap@latest && \
-    go install -v github.com/projectdiscovery/tlsx/cmd/tlsx@latest
+    go install -v github.com/projectdiscovery/tlsx/cmd/tlsx@latest && \
+    go install -v github.com/bishopfox/jsluice/cmd/jsluice@latest
 
 # ==============================================================================
 # Stage 3: Build the Unified BHF Go Server Binary
@@ -77,7 +78,8 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 # Install Python tools inside isolated virtual environments
 RUN uv tool install --python 3.14 git+https://github.com/laramies/theHarvester.git && \
-    uv tool install --python 3.14 wafw00f
+    uv tool install --python 3.14 wafw00f && \
+    uv tool install --python 3.14 uro
 
 # Copy security tool binaries
 COPY --from=tools-builder /go/bin/* /usr/local/bin/
