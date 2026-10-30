@@ -15,6 +15,8 @@ Track defects, crashes, parser anomalies, or UI issues discovered during live ex
 | BUG-003 | 2026-10-26 | Discovered Assets / UI | Medium | Discovered Assets pagination shows empty intermediate pages when filtering by Live Web | Resolved |
 | BUG-004 | 2026-10-30 | UI / Notifications | Low | Scan stop failure toast message is truncated preventing operator from reading error details | Resolved |
 | BUG-005 | 2026-10-30 | Content Discovery | High | Arjun stability probe raises unhandled AttributeError on string response | Resolved |
+| BUG-006 | 2026-10-30 | Vulnerability Assessment | High | Nuclei scan fails immediately with 'no templates provided for scan' due to missing /root/nuclei-templates | Open |
+| BUG-007 | 2026-10-30 | Tooling / Subdomain Enum | Low | Remove alterx tool integration from framework | Open |
 
 *Status Values*: `Open`, `Investigating`, `In Progress`, `Resolved`, `Closed`
 
@@ -59,6 +61,48 @@ Track defects, crashes, parser anomalies, or UI issues discovered during live ex
 - **Symptom**: Arjun terminates with `exit status 1` and traceback `AttributeError: 'str' object has no attribute 'status_code'` in `initialize` during target stability testing.
 - **Root Cause**: On PyPI release `arjun==2.2.1`, when a target endpoint returns a connection error, SSL failure, or drops packets during stability probing, `requester()` returns an error message string instead of a Response object. Arjun immediately attempts to access `response_1.status_code`, triggering an unhandled Python exception.
 - **Resolution**: Updated `docker/Dockerfile` to install Arjun from git master (`git+https://github.com/s0md3v/Arjun.git`), which incorporates upstream commit handling `if isinstance(response_1, str): return 'skipped'`.
+
+#### [BUG-006] Nuclei Missing Templates Execution Failure
+- **Date**: 2026-10-30
+- **Recon Stage**: Vulnerability Assessment and Verification
+- **Tool Involved**: `nuclei`
+- **Symptom**: Nuclei scan terminates immediately with `exit status 1` and fatal error `no templates provided for scan`:
+  ```
+  WARNING: sonic/ast only supports (go1.17~1.26 and amd64 CPU) or (go1.20~1.26 and arm64 CPU), but your environment is not suitable and will fallback to encoding/json
+  __ _
+  ____ __ _______/ /__ (_)
+  / __ \/ / / / ___/ / _ \/ /
+  / / / / /_/ / /__/ / __/ /
+  /_/ /_/\__,_/\___/_/\___/_/ v3.11.1
+  projectdiscovery.io
+  [INF] nuclei-templates are not installed, installing...
+  [INF] Your current nuclei-templates are outdated. Latest is v10.5.1
+  [ERR] Could not find template '/root/nuclei-templates': no templates found in path "/root/nuclei-templates"
+  [INF] Current nuclei version: v3.11.1 (latest)
+  [INF] Current nuclei-templates version: (outdated)
+  [INF] Targets loaded for current scan: 1
+  [INF] Scan completed in 176.589µs. No results found.
+  [FTL] Could not run nuclei: no templates provided for scan
+  process exited with error: exit status 1
+  ```
+- **Root Cause**:
+  - The runtime environment / container does not have `nuclei-templates` pre-installed or cloned at the default lookup path (`/root/nuclei-templates`).
+  - At runtime, Nuclei attempts on-the-fly template installation, but fails to locate or populate the template directory, causing it to abort immediately with exit status 1.
+- **Target Resolution**: (Tracked, do not fix yet per operator request)
+  - Pre-install or update `nuclei-templates` during Docker build (`RUN nuclei -update-templates` or clone into `/root/nuclei-templates`).
+  - Ensure template path or `-update-templates` flag is available so Nuclei can locate valid templates before scanning.
+
+#### [BUG-007] Remove "alterx" Tool Integration
+- **Date**: 2026-10-30
+- **Recon Stage**: Tooling & Subdomain Enumeration
+- **Tool Involved**: `alterx`
+- **Symptom**: Operator requested deprecation and removal of the `alterx` application/tool integration from the BHF platform.
+- **Root Cause / Justification**: Subdomain permutation via `alterx` is no longer desired as an integrated tool in the active tool suite.
+- **Target Resolution**: (Tracked, do not fix yet per operator request)
+  - Remove `internal/tools/alterx.go`.
+  - Unregister `alterx` from tool registry in `internal/tools/catalog.go`.
+  - Remove `alterx` installation from `docker/Dockerfile`.
+  - Clean up any frontend references in `RunConfigModal.tsx` and documentation.
 
 ---
 
