@@ -115,74 +115,61 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Pipeline Coordinator Banner */}
-      <div className="bg-[#161b22] border border-[#30363d] rounded-lg p-4 space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center space-x-2">
-              <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-400">
-                Methodology Pipeline Coordinator
-              </span>
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-zinc-800 text-zinc-400 border border-zinc-700">
-                Progressive Chaining
-              </span>
-            </div>
-            <p className="text-xs text-zinc-400 mt-1">
-              Calibrated end-to-end execution: Subdomain discovery &rarr; Port scan &rarr; HTTP probe &rarr; Crawl &rarr; Re-probe &rarr; Fuzz &rarr; Vuln scan.
-            </p>
+      {/* Sleek Minimal Pipeline Action Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-3.5 py-2.5 bg-[#161b22] border border-[#30363d] rounded-md font-mono text-xs">
+        <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 text-zinc-400">
+            <span className="text-zinc-200 font-bold uppercase tracking-wider text-[11px]">Pipeline</span>
+            <span className="text-zinc-600">/</span>
+            <span>6 Stages</span>
+            <span className="text-zinc-600">&bull;</span>
+            <span className="text-zinc-300">{fullPipelineTools.length} Tools</span>
           </div>
 
-          <div className="flex items-center space-x-2.5">
-            {isFullPipelineRunning ? (
-              <div className="flex items-center space-x-2">
-                <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded text-xs font-mono bg-blue-500/10 text-blue-400 border border-blue-500/30">
-                  <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-                  <span>
-                    Pipeline in Progress ({activeQueue!.currentIndex + 1}/{activeQueue!.tools.length}):{' '}
-                    <strong className="text-white">{activeQueue!.tools[activeQueue!.currentIndex]}</strong>
-                  </span>
-                </span>
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={onStopQueue}
-                  className="!py-1 !px-3 text-xs font-mono"
-                >
-                  <Square className="w-3.5 h-3.5 mr-1 fill-current" />
-                  Stop Pipeline
-                </Button>
-              </div>
-            ) : (
-              <Button
-                variant="primary"
-                size="sm"
-                disabled={!!currentRunningScanId || !!activeQueue}
-                onClick={handleRunFullPipeline}
-                className="!py-1.5 !px-3.5 text-xs font-mono font-bold shadow-sm"
-              >
-                <Play className="w-3.5 h-3.5 mr-1.5 fill-current text-white" />
-                Run Full Pipeline
-              </Button>
-            )}
-          </div>
-        </div>
+          <span className="text-zinc-700">|</span>
 
-        <div className="pt-2.5 border-t border-[#21262d] flex flex-wrap items-center justify-between gap-3 text-xs">
-          <label className="flex items-center space-x-2 cursor-pointer text-zinc-300 hover:text-zinc-100 select-none">
+          <label className="flex items-center space-x-1.5 cursor-pointer text-zinc-400 hover:text-zinc-200 select-none text-[11px]">
             <input
               type="checkbox"
               checked={enrichAfterCrawl}
               onChange={(e) => setEnrichAfterCrawl(e.target.checked)}
-              className="rounded bg-[#0d1117] border-[#30363d] text-blue-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+              className="rounded bg-[#0d1117] border-[#30363d] text-emerald-500 focus:ring-0 focus:ring-offset-0 cursor-pointer h-3.5 w-3.5"
             />
-            <span>
-              Re-probe newly discovered subdomains with <code className="text-amber-400 font-mono font-semibold">httpx</code> after Crawling & JS mining
-            </span>
+            <span>Auto-enrich with httpx</span>
           </label>
+        </div>
 
-          <div className="text-[11px] font-mono text-zinc-500">
-            Stages: 6 | Sequence: {fullPipelineTools.length} tools
-          </div>
+        <div className="flex items-center space-x-2">
+          {isFullPipelineRunning ? (
+            <div className="flex items-center space-x-2">
+              <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded text-[11px] font-mono bg-blue-500/10 text-blue-400 border border-blue-500/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                <span>
+                  {activeQueue!.currentIndex + 1}/{activeQueue!.tools.length}: <strong className="text-white">{activeQueue!.tools[activeQueue!.currentIndex]}</strong>
+                </span>
+              </span>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={onStopQueue}
+                className="!py-0.5 !px-2.5 text-xs font-mono"
+              >
+                <Square className="w-3 h-3 mr-1 fill-current" />
+                Stop Pipeline
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={!!currentRunningScanId || !!activeQueue}
+              onClick={handleRunFullPipeline}
+              className="!py-1 !px-3 text-xs font-mono font-medium shadow-sm"
+            >
+              <Play className="w-3 h-3 mr-1.5 fill-current text-white" />
+              Run Full Pipeline
+            </Button>
+          )}
         </div>
       </div>
 
