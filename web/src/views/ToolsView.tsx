@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Play, Square } from 'lucide-react';
+import { Play, Square, SkipForward } from 'lucide-react';
 import { ToolInfo } from '../types/tool';
 import { Scan } from '../types/scan';
 import { Target } from '../types/target';
@@ -21,6 +21,7 @@ interface ToolsViewProps {
   activeQueue: ActiveQueueState | null;
   onExecuteTool: (toolName: string, customArgs: string[]) => void;
   onExecuteQueue: (toolNames: string[], title: string) => void;
+  onSkipTool: () => void;
   onStopQueue: () => void;
   onViewLogs: (scanId: string) => void;
   onStopScan: (scanId: string) => void;
@@ -73,6 +74,7 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
   activeQueue,
   onExecuteTool,
   onExecuteQueue,
+  onSkipTool,
   onStopQueue,
   onViewLogs,
   onStopScan,
@@ -149,6 +151,16 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
                 </span>
               </span>
               <Button
+                variant="secondary"
+                size="sm"
+                onClick={onSkipTool}
+                className="!py-0.5 !px-2.5 text-xs font-mono text-zinc-300 hover:text-white border-[#30363d]"
+                title={`Skip ${activeQueue!.tools[activeQueue!.currentIndex]} and proceed to next tool in pipeline`}
+              >
+                <SkipForward className="w-3 h-3 mr-1 text-amber-400" />
+                Skip Tool
+              </Button>
+              <Button
                 variant="danger"
                 size="sm"
                 onClick={onStopQueue}
@@ -205,6 +217,16 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
                         <strong className="text-white">{activeQueue!.tools[activeQueue!.currentIndex]}</strong>
                       </span>
                     </span>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={onSkipTool}
+                      className="!py-0.5 !px-2 text-xs font-mono text-zinc-300 hover:text-white border-[#30363d]"
+                      title={`Skip ${activeQueue!.tools[activeQueue!.currentIndex]} and proceed to next tool`}
+                    >
+                      <SkipForward className="w-3 h-3 mr-1 text-amber-400" />
+                      Skip Tool
+                    </Button>
                     <Button
                       variant="danger"
                       size="sm"

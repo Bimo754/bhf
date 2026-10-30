@@ -11,6 +11,7 @@ interface TerminalViewProps {
   logs: LogEntry[];
   isRunning: boolean;
   onStop: () => void;
+  onSkipTool?: () => void;
   onClear: () => void;
 }
 
@@ -21,6 +22,7 @@ export const TerminalView: React.FC<TerminalViewProps> = ({
   logs,
   isRunning,
   onStop,
+  onSkipTool,
   onClear,
 }) => {
   const [copiedCmd, setCopiedCmd] = useState(false);
@@ -105,6 +107,7 @@ export const TerminalView: React.FC<TerminalViewProps> = ({
           title={activeScan ? `${activeScan.tool_name}` : 'Console'}
           isRunning={isRunning && activeScan?.status === 'RUNNING'}
           onStop={onStop}
+          onSkip={onSkipTool}
           onClear={onClear}
         />
       </div>

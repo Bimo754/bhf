@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Terminal as TerminalIcon, Copy, Trash2, ArrowDownCircle, Check, Square } from 'lucide-react';
+import { Terminal as TerminalIcon, Copy, Trash2, ArrowDownCircle, Check, Square, SkipForward } from 'lucide-react';
 import { LogEntry } from '../types/log';
 import { Button } from './Button';
 
@@ -8,6 +8,7 @@ interface TerminalProps {
   title?: string;
   isRunning?: boolean;
   onStop?: () => void;
+  onSkip?: () => void;
   onClear?: () => void;
 }
 
@@ -16,6 +17,7 @@ export const Terminal: React.FC<TerminalProps> = ({
   title = 'Execution Console',
   isRunning = false,
   onStop,
+  onSkip,
   onClear,
 }) => {
   const [autoScroll, setAutoScroll] = useState(true);
@@ -132,6 +134,19 @@ export const Terminal: React.FC<TerminalProps> = ({
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
+          )}
+
+          {isRunning && onSkip && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onSkip}
+              className="!py-0.5 !px-2 text-xs font-mono text-zinc-300 hover:text-white border-[#30363d]"
+              title="Skip current tool and advance pipeline"
+            >
+              <SkipForward className="w-3 h-3 mr-1 text-amber-400" />
+              Skip
+            </Button>
           )}
 
           {isRunning && onStop && (

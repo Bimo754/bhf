@@ -66,6 +66,7 @@ export const App: React.FC = () => {
   const [activeQueue, setActiveQueue] = useState<ActiveQueueState | null>(null);
   const activeQueueRef = useRef<ActiveQueueState | null>(null);
   activeQueueRef.current = activeQueue;
+  const skippedScanIdsRef = useRef<Set<string>>(new Set());
 
   const addToast = (toast: Omit<ToastMessage, 'id'>) => {
     const id = Math.random().toString(36).substring(2, 9);
@@ -285,6 +286,10 @@ export const App: React.FC = () => {
                 }
               }
             } else if (msg.status === 'FAILED') {
+              if (skippedScanIdsRef.current.has(msg.scan_id)) {
+                skippedScanIdsRef.current.delete(msg.scan_id);
+                return;
+              }
               addToast({
                 type: 'error',
                 title: `${toolTitle} Failed`,
@@ -300,6 +305,10 @@ export const App: React.FC = () => {
                 activeQueueRef.current = null;
               }
             } else if (msg.status === 'STOPPED') {
+              if (skippedScanIdsRef.current.has(msg.scan_id)) {
+                skippedScanIdsRef.current.delete(msg.scan_id);
+                return;
+              }
               addToast({
                 type: 'info',
                 title: `${toolTitle} Stopped`,
@@ -419,6 +428,53 @@ export const App: React.FC = () => {
     });
   };
 
+  const handleSkipCurrentTool = async () => {
+    const currentQ = activeQueueRef.current;
+    if (!currentQ) return;
+
+    const currentTool = currentQ.tools[currentQ.currentIndex];
+    const currentScanId = runningScanId;
+
+    if (currentScanId) {
+      skippedScanIdsRef.current.add(currentScanId);
+      try {
+        await scanService.stop(currentScanId);
+      } catch (err) {
+        console.warn('Failed to stop scan during skip:', err);
+      }
+      setRunningScanId(null);
+    }
+
+    const nextIndex = currentQ.currentIndex + 1;
+    if (nextIndex < currentQ.tools.length) {
+      const nextTool = currentQ.tools[nextIndex];
+      const updatedQueue: ActiveQueueState = {
+        ...currentQ,
+        currentIndex: nextIndex,
+      };
+      setActiveQueue(updatedQueue);
+      activeQueueRef.current = updatedQueue;
+
+      addToast({
+        type: 'info',
+        title: `Skipped ${currentTool}`,
+        message: `Advancing to ${nextTool} (${nextIndex + 1}/${currentQ.tools.length})`,
+      });
+
+      setTimeout(() => {
+        handleExecuteTool(nextTool, []);
+      }, 400);
+    } else {
+      addToast({
+        type: 'success',
+        title: `${currentQ.title} Finished`,
+        message: `Pipeline completed after skipping ${currentTool}.`,
+      });
+      setActiveQueue(null);
+      activeQueueRef.current = null;
+    }
+  };
+
   const handleStopScan = async (scanId: string) => {
     try {
       await scanService.stop(scanId);
@@ -479,6 +535,7 @@ export const App: React.FC = () => {
             activeQueue={activeQueue}
             onExecuteTool={handleExecuteTool}
             onExecuteQueue={handleExecuteQueue}
+            onSkipTool={handleSkipCurrentTool}
             onStopQueue={handleStopQueue}
             onViewLogs={handleViewLogs}
             onStopScan={handleStopScan}
@@ -535,6 +592,7 @@ export const App: React.FC = () => {
             logs={activeScanLogs}
             isRunning={!!runningScanId}
             onStop={() => runningScanId && handleStopScan(runningScanId)}
+            onSkipTool={activeQueue ? handleSkipCurrentTool : undefined}
             onClear={() => setActiveScanLogs([])}
           />
         )}
