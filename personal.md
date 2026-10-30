@@ -17,7 +17,7 @@ Track defects, crashes, parser anomalies, or UI issues discovered during live ex
 | BUG-005 | 2026-10-30 | Content Discovery | High | Arjun stability probe raises unhandled AttributeError on string response | Resolved |
 | BUG-006 | 2026-10-30 | Vulnerability Assessment | High | Nuclei scan fails immediately with 'no templates provided for scan' due to missing /root/nuclei-templates | Open |
 | BUG-007 | 2026-10-30 | Tooling / Subdomain Enum | Low | Remove alterx and asnmap tool integrations from framework | Resolved |
-| BUG-008 | 2026-10-30 | Live HTTP Probing / UI | Medium | Visual Gallery shows placeholder 'no screenshots', duplicate redirecting hosts, and failed captures | Open |
+| BUG-008 | 2026-10-30 | Live HTTP Probing / Visual | High | Screenshot engine instability (gowitness capture drops/crashes) and Visual Gallery placeholder clutter | Open |
 
 *Status Values*: `Open`, `Investigating`, `In Progress`, `Resolved`, `Closed`
 
@@ -107,22 +107,34 @@ Track defects, crashes, parser anomalies, or UI issues discovered during live ex
   - Removed tool references from `web/src/views/ToolsView.tsx` methodology stages and pipeline lists.
   - Updated documentation across `ARCHITECTURE.md` and `CHANGELOG.md`.
 
-#### [BUG-008] Visual Gallery Screenshot Failures, Placeholders, and Canonical Duplicates
+#### [BUG-008] Visual Gallery Screenshot Failures, Placeholders, and gowitness Engine Instability
 - **Date**: 2026-10-30
 - **Recon Stage**: Live HTTP Probing / Visual Reconnaissance
 - **Component**: `VisualGallery.tsx`, `gowitness`, `httpx`
+- **Severity**: High
 - **Symptom**:
-  - The Visual Gallery renders numerous cards displaying "No Screenshot Available" because assets without screenshots are shown by default alongside screenshotted hosts.
+  - `gowitness` is highly unstable during live scanning: screenshots are frequently not taken at all, dropping targets silently without raising process errors.
+  - Headless Chromium instances inside Docker/Linux crash, stall on complex SPAs, or exhaust shared memory (`/dev/shm`), causing entire batches of screenshots to fail.
+  - The Visual Gallery renders numerous cards displaying placeholder "No Screenshot Available" because assets without screenshots are shown by default alongside screenshotted hosts.
   - Multiple duplicate cards exist for the same target service (e.g., 301/302 redirects from `http://` to `https://` or apex domain to `www`).
   - Many cards render failed capture states (e.g., 400 Bad Request, 502 Bad Gateway, SSL connection resets) where headless browser rendering failed or timed out.
-- **Root Cause**:
-  - `VisualGallery.tsx` filters only on `a.url || a.status_code`, without checking whether a valid screenshot URI exists in `a.technologies`.
-  - No client-side deduplication or canonical redirect folding (e.g. coalescing 301/302 redirect pairs into the destination 200 target).
-  - Unresponsive or broken HTTP endpoints (400, 502) captured by `httpx` are passed directly into `gowitness`, producing failed screenshots.
-- **Target Resolution**: (Tracked, do not fix yet per operator request)
-  - Add a "Screenshots Only" toggle filter in `VisualGallery.tsx` (enabled by default so hunters only browse actual screenshots).
-  - Deduplicate canonical redirect chains and apex/www aliases.
-  - Provide filtering for response status codes (e.g. 2xx/3xx vs error states).
+- **Root Cause Analysis**:
+  - **Engine Instability**: `gowitness` relies on external Chromium via Chrome DevTools Protocol (CDP). Inside container environments without `--no-sandbox`, `--disable-dev-shm-usage`, and `--disable-gpu`, headless Chromium is notoriously fragile and prone to silent `SIGTRAP`/`SIGBUS` crashes.
+  - **Silent Drops & Incomplete Captures**: When `gowitness scan file` encounters unresponsive endpoints, cert mismatches, or hangs on heavy JavaScript bundles, it times out or skips targets without writing JPEG/PNG files to disk, yet `gowitness.go` still records asset entries.
+  - **Frontend Filtering Gap**: `VisualGallery.tsx` filters only on `a.url || a.status_code`, without checking whether a valid screenshot URI exists in `a.technologies`.
+  - **Redirect Duplication**: No client-side deduplication or canonical redirect folding (e.g. coalescing 301/302 redirect pairs into the destination 200 target).
+- **Target Resolution & Tool Migration Plan**: (Tracked, do not fix yet per operator request)
+  - **Tool Replacement Evaluation (Migrate away from `gowitness`)**:
+    - **Option 1 (Recommended - `httpx -screenshot`)**: Replace `gowitness` with ProjectDiscovery's native `httpx -ss -system-chrome -screenshot-timeout 10`. Benefits:
+      - Already compiled and integrated in BHF's core stack.
+      - Eliminates the need for a separate screenshot tool and redundant HTTP connections.
+      - Proven, battle-tested concurrency, timeout, and retry model matching the rest of PD tooling.
+      - Significantly lower memory overhead and Docker image footprint.
+    - **Option 2 (Hardened Direct Chromium CDP Runner)**: Replace `gowitness` with a dedicated lightweight Go Chromium runner configured with mandatory container flags (`--no-sandbox`, `--disable-dev-shm-usage`, `--disable-gpu`, `--single-process`).
+  - **Visual Gallery UI Enhancements**:
+    - Add a "Screenshots Only" toggle filter in `VisualGallery.tsx` (enabled by default so hunters only browse actual screenshots).
+    - Deduplicate canonical redirect chains and apex/www aliases.
+    - Filter out 400/502 error captures unless explicitly requested by the operator.
 
 ---
 
