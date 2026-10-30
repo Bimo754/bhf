@@ -14,6 +14,7 @@ Track defects, crashes, parser anomalies, or UI issues discovered during live ex
 | BUG-002 | 2026-10-26 | Vulnerability Assessment | High | Nuclei scan duration takes an excessive amount of time to complete against multiple targets | Open |
 | BUG-003 | 2026-10-26 | Discovered Assets / UI | Medium | Discovered Assets pagination shows empty intermediate pages when filtering by Live Web | Open |
 | BUG-004 | 2026-10-30 | UI / Notifications | Low | Scan stop failure toast message is truncated preventing operator from reading error details | Open |
+| BUG-005 | 2026-10-30 | Content Discovery | High | Arjun stability probe raises unhandled AttributeError on string response | Resolved |
 
 *Status Values*: `Open`, `Investigating`, `In Progress`, `Resolved`, `Closed`
 
@@ -51,6 +52,14 @@ Track defects, crashes, parser anomalies, or UI issues discovered during live ex
 - **Status**: Open (tracked, do not fix yet per operator request).
 - **Target Resolution**: Allow toast messages to wrap or expand on hover/click so long error messages can be fully read without breaking container boundaries.
 
+#### [BUG-005] Arjun Stability Probe Unhandled String Exception
+- **Date**: 2026-10-30
+- **Recon Stage**: Content Discovery & Parameter Fuzzing
+- **Tool Involved**: `arjun`
+- **Symptom**: Arjun terminates with `exit status 1` and traceback `AttributeError: 'str' object has no attribute 'status_code'` in `initialize` during target stability testing.
+- **Root Cause**: On PyPI release `arjun==2.2.1`, when a target endpoint returns a connection error, SSL failure, or drops packets during stability probing, `requester()` returns an error message string instead of a Response object. Arjun immediately attempts to access `response_1.status_code`, triggering an unhandled Python exception.
+- **Resolution**: Updated `docker/Dockerfile` to install Arjun from git master (`git+https://github.com/s0md3v/Arjun.git`), which incorporates upstream commit handling `if isinstance(response_1, str): return 'skipped'`.
+
 ---
 
 ## 2. Feature & Tool Wishlist
@@ -72,6 +81,10 @@ Track capabilities, tool integrations, and workflow improvements that increase b
 | FEAT-011 | 2026-10-27 | Execution Engine | Subprocess group isolation & emergency kill switch | Prevents orphaned processes; allows 1-click abort of all running scans | Backlog |
 | FEAT-012 | 2026-10-27 | UI & Notifications | Persistent notification drawer & OS desktop bread alerts | Notifies hunter when scans complete/stop while working in other windows | Backlog |
 | FEAT-013 | 2026-10-30 | Discovered Assets / UI | Dedicated Priority Score & Star Rating Column | Moves priority stars and score values out of the host cell into a dedicated column for easier sorting and visual triage | Planned |
+| FEAT-014 | 2026-10-30 | Subdomain Enumeration | Subdomain Permutation DNS Pipeline (`alterx` piped to `dnsx`) | Eliminates unresolvable permutation garbage; only saves verified live DNS records | Planned |
+| FEAT-015 | 2026-10-30 | Discovered Assets / UI | Subdomain Hierarchical Sitemap & Tree View | Organizes crawled and fuzzed paths (`ffuf`, `katana`, `gau`, `jsluice`) per subdomain in an interactive tree view | Planned |
+| FEAT-016 | 2026-10-30 | Live HTTP Probing / UI | Dedicated Visual Reconnaissance Gallery Tab | Replaces row-by-row modal clicks with a full-screen screenshot card gallery for fast visual triage | Planned |
+| FEAT-017 | 2026-10-30 | Database & Architecture | Discovered Endpoints Schema Separation | Creates dedicated `endpoints` table to prevent crawled paths from overwriting host rows | Planned |
 
 *Status Values*: `Idea`, `Planned`, `In Progress`, `Implemented`, `Rejected`
 
@@ -162,6 +175,47 @@ Track capabilities, tool integrations, and workflow improvements that increase b
   - Rating Badge: Render priority stars (`★`) alongside numerical score badges with color-coded priority tiers (High `#f0883e`, Medium `#d29922`, Low `#8b949e`).
   - Table Sorting: Enable 1-click column header sorting (`asc` / `desc`) on `asset.priority_score`.
   - Backend Alignment: Ensure `GET /api/assets/target/{targetID}?sort=priority&order=desc` supports direct SQL ordering by `priority_score`.
+
+#### [FEAT-014] Subdomain Permutation DNS Pipeline (`alterx` -> `dnsx`)
+- **Methodology Stage**: Subdomain Enumeration & Active Resolution
+- **Hunter Justification**: Raw permutation engines (`alterx`, `gotator`) generate thousands of hypothetical naming permutations (e.g. `dev-api`, `admin-test`, `staging-1`). Standalone execution floods asset inventory with unresolvable strings (99.9% noise). Pipelining generated permutations directly into active DNS resolution (`dnsx`) guarantees that only verified, live resolving subdomains are stored.
+- **Architecture**:
+  - Chained Execution: Modify `internal/tools/alterx.go` to pipe stdout permutations directly into `dnsx -silent -a -resp` or require DNS verification before inserting into `assets`.
+  - Storage Integrity: Only record subdomains that returned a valid DNS A or CNAME record.
+  - Clean Inventory: Prevents junk wordlist entries from polluting the operator's Discovered Assets view.
+
+#### [FEAT-015] Subdomain Hierarchical Sitemap & Tree View
+- **Methodology Stage**: Crawling & Endpoint Discovery / UI Redesign
+- **Hunter Justification**: Flat asset tables cannot represent the hierarchical URL directory tree of modern web applications. Hunters need to explore crawled routes (`/api`, `/admin`, `/login`, `/panel`, static assets) organized under their parent subdomain.
+- **Architecture**:
+  - Interactive Tree Component: In `web/src/components/`, build an expandable sitemap tree component grouping paths by subdomain:
+    - `api.target.com`
+      - `/v1`
+        - `/users` [GET, POST]
+        - `/auth` [POST]
+      - `/swagger.json` [200 OK]
+  - Visual Indicators: Status badges (200, 301, 401, 403), HTTP method chips, and query parameter tags.
+  - Quick Filter: Search bar to filter by route path, extension (`.php`, `.json`, `.js`), or status code.
+
+#### [FEAT-016] Dedicated Visual Reconnaissance Gallery Tab
+- **Methodology Stage**: Live HTTP Probing / Visual Triage
+- **Hunter Justification**: Clicking camera buttons row-by-row in a data table is slow and tedious when triaging 50+ web services. Hunters need a dedicated visual gallery grid where all screenshots are rendered simultaneously for rapid visual triage within seconds.
+- **Architecture**:
+  - View Toggle: Add view switcher buttons `[ Table View | Visual Gallery | Sitemap Tree ]` to the Discovered Assets header.
+  - Visual Card Grid: Render a responsive grid of website thumbnail cards with high-contrast borders:
+    - Live thumbnail image with click-to-expand lightbox preview.
+    - Status code pill (`200 OK` in green, `403 Forbidden` in yellow, `500` in red).
+    - Page Title and detected technologies badges (`React`, `Nginx`, `WordPress`).
+    - Quick action buttons: Copy URL, Open in new tab, and Launch Nuclei scan.
+
+#### [FEAT-017] Discovered Endpoints Schema Separation
+- **Methodology Stage**: Database & Architecture / Single Responsibility
+- **Hunter Justification**: The `assets` table has a `UNIQUE(target_id, host, port)` constraint. When fuzzers (`ffuf`) or crawlers (`katana`, `gau`, `uro`, `jsluice`) discover multiple endpoints on the same host, each newly discovered path overwrites the previous URL on that host row, losing critical endpoints.
+- **Architecture**:
+  - SQLite Table `endpoints`:
+    `CREATE TABLE endpoints (id TEXT PRIMARY KEY, target_id TEXT, host TEXT, url TEXT UNIQUE, path TEXT, method TEXT, status_code INTEGER, content_length INTEGER, title TEXT, source_tool TEXT, created_at DATETIME)`
+  - Tool Output Routing: Direct `ffuf`, `katana`, `gau`, `uro`, and `jsluice` discovered routes into `endpoints` rather than `assets`.
+  - API & Frontend: Expose `GET /api/endpoints/target/{targetID}` and render in dedicated tab and sitemap tree view.
 
 ---
 

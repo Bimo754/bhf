@@ -94,7 +94,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 RUN uv tool install --python 3.14 git+https://github.com/laramies/theHarvester.git && \
     uv tool install --python 3.14 wafw00f && \
     uv tool install --python 3.14 uro && \
-    uv tool install --python 3.14 arjun && \
+    uv tool install --python 3.14 git+https://github.com/s0md3v/Arjun.git && \
     git clone --depth 1 https://github.com/s0md3v/Corsy.git /opt/corsy && \
     uv venv /opt/corsy/.venv --python 3.14 && \
     uv pip install --python /opt/corsy/.venv/bin/python -r /opt/corsy/requirements.txt && \
