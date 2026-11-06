@@ -1,69 +1,81 @@
-# BHF (Bug Hunting Framework) - Development Workflow and Operational Runbook
+# BHF — Bug Hunting & Security Assessment Platform: Development Workflow and Operational Runbook
 
-This document defines the standard engineering lifecycle for adding features, integrating security tools, managing dependencies, debugging defects, and tracking progress from an offensive bug hunter's perspective.
+This document defines the standard engineering lifecycle for adding features, integrating assessment modules, managing dependencies, debugging defects, and tracking progress from an offensive security research perspective.
 
 ---
 
-## 1. The Hunter's Methodology: Progressive Reconnaissance Pipeline
+## 1. Security Assessment Methodology: The Progressive Assessment Pipeline
 
-BHF is designed around an extensible, progressive recon funnel used by professional bug bounty hunters. The framework continuously evolves, allowing new stages and specialized tools to be integrated as capabilities expand:
+BHF is designed around an extensible, progressive assessment funnel. The framework continuously evolves, allowing new assessment capabilities, application intelligence stages, and specialized modules to be integrated cleanly:
 
 ```
-[Perimeter Discovery]     -> Discover in-scope perimeter & resolve DNS
+[Perimeter Discovery]     -> Discover in-scope perimeter, subdomains & resolve DNS
        |
        v
-[Network & Port Mapping]  -> Uncover non-standard ports & exposed services
+[Network & Port Mapping]  -> Discover network hosts, non-standard ports & open services
        |
        v
-[HTTP/S Probing]          -> Fingerprint live web, status codes, tech stack, priority score
+[HTTP/S Probing]          -> Fingerprint live web targets, status codes, tech stack & priority
        |
        v
-[Crawling & Endpoints]    -> Extract dynamic routes, API endpoints, sensitive query params
+[Crawling & Routes]       -> Extract dynamic routes, API endpoints, JS secrets & parameters
        |
        v
-[Content Fuzzing]         -> Targeted fuzzing for .git, .env, backups, admin portals
+[Content Fuzzing]         -> Surgical fuzzing for sensitive files, backups & unlinked routes
        |
        v
-[Vulnerability Analysis]  -> High-confidence template execution & verified cURL reproduction
+[Interactive App Intel]   -> Isolated browser navigation, traffic interception & categorization
        |
        v
-[Specialized Extensions]  -> (e.g., Cloud Assets, Secret Scanning, Auth Analysis)
+[Intelligent Assessment]  -> Deterministic verification + AI analysis with reproducible evidence
+       |
+       v
+[Network & AD Expansion]  -> Service audit, Active Directory mapping & privilege validation
 ```
 
-### Section 1: Subdomain and OSINT Enumeration
+### Stage 1: Subdomain and OSINT Enumeration
 - **Primary Tools**: `subfinder`, `assetfinder`, `theharvester`, `dnsx`
-- **Hunter Mindset**: Expand the perimeter as broadly as possible without triggering active alerts. Scrape certificate transparency logs, search engines, and passive threat feeds. Immediately resolve records via `dnsx` to drop dead hosts and wildcard DNS false positives.
+- **Methodology**: Expand the perimeter as broadly as possible without triggering active alerts. Scrape certificate transparency logs, search engines, and passive threat feeds. Immediately resolve records via `dnsx` to drop dead hosts and wildcard DNS false positives.
 - **Critical Invariant**: Strip wildcards and enforce `tools.IsInScope()` so out-of-scope third parties never contaminate the target inventory.
 
-### Section 2: Port and Network Scanning
+### Stage 2: Port and Network Scanning
 - **Primary Tools**: `naabu`
-- **Hunter Mindset**: Production web servers on ports 80 and 443 are heavily hardened and protected by enterprise WAFs. High-yield bugs (unauthenticated admin panels, dev consoles, staging APIs, Prometheus/Actuator metrics) commonly hide on non-standard ports (e.g., `8080`, `8443`, `8000`, `9000`, `3000`, `5000`, `9200`).
+- **Methodology**: Production web servers on standard ports 80 and 443 are often fronted by CDNs and WAFs. High-yield services (unauthenticated dev consoles, staging APIs, Prometheus/Actuator metrics, internal dashboards) frequently hide on non-standard ports (e.g., `8080`, `8443`, `8000`, `9000`, `3000`, `5000`, `9200`).
 - **Traffic Safety**: Scan only resolved, live hostnames. Never flood targets with uncontrolled SYN bursts that trigger network-level rate limits.
 
-### Section 3: Live HTTP/S Probing and Fingerprinting
-- **Primary Tools**: `httpx`
-- **Hunter Mindset**: Determine which open ports actually serve HTTP/HTTPS traffic. Inspect HTTP response status codes, page titles, redirects, and technology stacks.
+### Stage 3: Live HTTP/S Probing and Fingerprinting
+- **Primary Tools**: `httpx`, `tlsx`, `wafw00f`
+- **Methodology**: Determine which open ports actually serve HTTP/HTTPS traffic. Inspect HTTP response status codes, page titles, server headers, and technology stacks. Extract SANs to uncover origin servers.
 - **Priority Scoring (ROI Optimization)**:
   - Automatically flag high-value assets with elevated priority scores:
-    - Status codes `401` and `403`: High-priority authentication bypass and forbidden-bypass candidates.
+    - Status codes `401` and `403`: High-priority authentication and access control candidates.
     - Sensitive keywords in hostname: `admin`, `api`, `internal`, `dev`, `staging`, `vpn`, `auth`, `portal`.
-    - Sensitive technologies: Spring Boot, Laravel, Jenkins, Swagger, Kubernetes, Actuator, Apache Solr.
+    - Sensitive technologies: Spring Boot, Laravel, Jenkins, Swagger, Kubernetes, Actuator.
     - Non-standard ports: `8080`, `8443`, `8000`, `9000`, `3000`.
 
-### Section 4: Crawling and URL Discovery
-- **Primary Tools**: `katana`, `gau`
-- **Hunter Mindset**: Spider dynamic applications to extract endpoints, hidden JavaScript routes, and sensitive query parameters (`id=`, `url=`, `redirect=`, `token=`, `file=`). Mine historical archives (Wayback Machine, Common Crawl, AlienVault) for forgotten endpoints and deprecated API routes.
-- **Scope Guard**: Constrain crawlers to in-scope domains (`-fs dn`) to avoid spidering external CDNs, social media widgets, or auth providers.
+### Stage 4: Crawling and URL Discovery
+- **Primary Tools**: `katana`, `gau`, `uro`, `jsluice`
+- **Methodology**: Spider dynamic applications to extract endpoints, hidden JavaScript routes, and query parameters. Mine historical archives (Wayback Machine, Common Crawl, AlienVault) for forgotten endpoints and deprecated API routes. Parse JavaScript bundles using tree-sitter AST to uncover hidden endpoints and credentials.
+- **Scope Guard**: Constrain crawlers to in-scope domains (`-fs dn`) to avoid spidering external CDNs, social media widgets, or third-party auth providers. Discovered routes are routed into the `endpoints` table.
 
-### Section 5: Content Discovery and Fuzzing
-- **Primary Tools**: `ffuf`
-- **Hunter Mindset**: Perform surgical directory and file brute-forcing against live web targets. Seek high-impact exposures: `.git/config`, `.env`, backup files (`.bak`, `.zip`), configuration dumps, and unlinked admin panels.
-- **Traffic Discipline**: Never use brute-force defaults that send 5,000 req/sec and trigger immediate WAF IP bans. Use calibrated rate limits (`-rate 80`), sensible wordlists, and status filtering (`-mc 200,204,301,302,307,401,403`).
+### Stage 5: Content Discovery and Parameter Fuzzing
+- **Primary Tools**: `ffuf`, `arjun`
+- **Methodology**: Perform surgical directory and parameter discovery against live web targets. Seek high-impact exposures: configuration dumps, backup archives, unlinked portals, and hidden query/body parameters (`id=`, `user_id=`, `role=`, `file=`, `redirect=`).
+- **Traffic Discipline**: Never use reckless defaults sending thousands of req/sec. Use calibrated rate limits (`-rate 80`), sensible wordlists, and status filtering.
 
-### Section 6: Vulnerability Assessment and Verification
-- **Primary Tools**: `nuclei`
-- **Hunter Mindset**: Scan discovered endpoints with targeted, high-signal vulnerability templates (CVEs, misconfigurations, exposed panels, default credentials).
-- **Reproduction Invariant**: Every finding must include a verified, executable reproduction command (`curl`) and clear severity. Never report low-severity junk, informational banner grabs, or unverified false positives.
+### Stage 6: Interactive Application Intelligence
+- **Subsystem**: `internal/appintel/` (Browser controller, traffic proxy, transaction categorizer)
+- **Methodology**: Launch an isolated, headless browser session to navigate target applications. Observe real user flows, state transitions, authentication forms, and client-side API calls. Intercept HTTP transactions and categorize them into authentication, registration, user-generated content, file upload, search, and admin flows. Map all user-controlled parameters into a structured, searchable traffic graph.
+- **Privacy & Safety**: Redact and protect sensitive session tokens and personal information (PII).
+
+### Stage 7: Intelligent Security Assessment & Deterministic Verification
+- **Subsystem**: `internal/assessment/` + `internal/ai/` (Hybrid AI planner + deterministic engine)
+- **Methodology**: Move beyond speculative scanner alerts. AI agents analyze captured traffic and recommend high-probability security checks based on real application functionality. Deterministic testing engines execute targeted tests (auth bypass, IDOR/BOLA, unsafe file uploads, parameter injection, access control boundary violations).
+- **Evidence Requirement**: Findings are created ONLY upon deterministic verification. Every finding includes an explicit confidence level, full request/response evidence, and an executable reproduction command.
+
+### Stage 8: Network Infrastructure & Active Directory Assessment
+- **Subsystem**: `internal/network/`
+- **Methodology**: Enumerate network subnets, discover internal hosts and running services, map network topology, audit Active Directory domain relationships, and detect protocol misconfigurations within explicitly authorized scopes.
 
 ---
 
@@ -72,7 +84,7 @@ BHF is designed around an extensible, progressive recon funnel used by professio
 Every code modification or feature addition must follow this 7-step sequence:
 
 ```
-[1. Recon Value Assessment] 
+[1. Security Value & Scope Assessment] 
        |
        v
 [2. Architecture & SRP Placement]
@@ -93,21 +105,26 @@ Every code modification or feature addition must follow this 7-step sequence:
 [7. Atomic Conventional Git Commit]
 ```
 
-### Step 1: Reconnaissance Value and Traffic Safety Assessment
-Before writing any code, answer these three mandatory questions:
-1. **Which methodology pipeline stage does this serve?** Features that do not yield high-signal intelligence or speed up analysis are rejected.
-2. **Will this trigger excessive network traffic or WAF bans?** Any active network requests must include rate limiting (`-rl`), concurrency bounds (`-c`), and timeout controls.
+### Step 1: Security Value, Safety & Scope Assessment
+Before writing any code, answer these mandatory questions:
+1. **Which methodology pipeline stage or layer does this serve?** Features that do not yield high-signal intelligence, provide verified evidence, or speed up analysis are rejected.
+2. **Will this trigger excessive network traffic or WAF bans?** Active network requests must include rate limiting (`-rl`), concurrency bounds (`-c`), and timeout controls.
 3. **Is scope strictly maintained?** Ensure that no third-party assets can leak into the database.
+4. **Is evidence reproducible?** Ensure any findings generated are backed by exact request/response data and verified impact.
 
 ### Step 2: Architecture, Single Responsibility, and DRY Placement
 Determine exactly which files need to be created or modified according to Single Responsibility Principle (SRP) and Don't Repeat Yourself (DRY):
-- New security tool? Add exactly one file in `internal/tools/<tool_name>.go` implementing `tools.Tool`. Reuse existing execution wrappers (`RunWithStdin`) and universal scope guards (`tools.IsInScope()`) rather than duplicating subprocess management or scope verification logic.
+- New recon tool? Add `internal/tools/<tool_name>.go` implementing `tools.Tool`. Reuse existing wrappers and universal scope guards (`tools.IsInScope()`).
+- New application intelligence module? Place under `internal/appintel/`.
+- New deterministic security check? Place under `internal/assessment/` implementing `assessment.Rule`.
+- New network discovery module? Place under `internal/network/`.
 - New database entity? Add `internal/models/<entity>.go`, `internal/database/<entity>_repo.go`, update canonical schema in `internal/database/schema.go`, and add `web/src/types/<entity>.ts`.
-- New UI panel? Create a dedicated view in `web/src/views/` and granular components in `web/src/components/`. All network communications must route through dedicated services in `web/src/services/` to prevent duplicate API route definitions.
+- New UI panel? Create a dedicated view in `web/src/views/` and granular components in `web/src/components/`. All network communications must route through dedicated services in `web/src/services/`.
 
 ### Step 3: Test Definition
 Define tests for the new functionality before or alongside code implementation:
-- If adding a tool, prepare sample output lines and test its `Run()` parser in `internal/tools/tools_test.go`.
+- If adding a tool, test its output parser in `internal/tools/tools_test.go` with sample strings.
+- If adding an assessment check, test its verification logic in `internal/assessment/*_test.go` using mock HTTP response fixtures.
 - If modifying database logic, add a test in `internal/database/<entity>_repo_test.go`.
 
 ### Step 4: Clean Implementation and Single Source of Truth (SSOT)
@@ -132,7 +149,7 @@ Record the change in `CHANGELOG.md` under the `[Unreleased]` section following t
 Commit the changes using a descriptive Conventional Commit message:
 ```bash
 git add <specific-files>
-git commit -m "feat(tools): add katana crawler integration with domain scoping"
+git commit -m "feat(assessment): implement deterministic idor boundary verification check"
 ```
 
 ---
@@ -169,7 +186,7 @@ To add or update a Python-based security tool (e.g., `theHarvester`, `wafw00f`):
 
 ## 4. Methodical Investigation Runbook (Zero Guesswork)
 
-When a bug occurs (e.g., scan fails unexpectedly, output is not parsed, database error):
+When an unexpected defect occurs:
 
 ### Step 1: Capture the Exact Output and Command
 - Review the terminal logs for the scan session via the Console tab or SQLite:
@@ -183,7 +200,7 @@ When a bug occurs (e.g., scan fails unexpectedly, output is not parsed, database
   ```bash
   which <tool-name>
   ```
-- Run the tool directly with the same arguments against a test domain to observe raw stdout and stderr behavior.
+- Run the tool directly with the same arguments against a test target to observe raw stdout and stderr behavior.
 
 ### Step 3: Inspect Database Records and Constraints
 - Check SQLite for table schema mismatches or foreign key violations:
@@ -205,34 +222,36 @@ When a bug occurs (e.g., scan fails unexpectedly, output is not parsed, database
 
 ## 5. Starter Prompt for New Conversations
 
-When opening a new session or thread with the AI assistant, copy and paste the following prompt. It establishes the hunter's perspective, adapts dynamically to evolving pipeline stages and tools, and enforces all engineering standards:
+When opening a new session or thread with the AI assistant, copy and paste the following prompt. It establishes the security assessment philosophy and enforces all engineering standards:
 
 ```text
-You are working on BHF (Bug Hunting Framework) located at /home/diamond/Desktop/Github/bhf.
+You are working on BHF, an extensible security assessment and penetration testing automation platform located at /home/diamond/Desktop/Github/bhf.
 
 Before proposing or making any changes, you must read:
 1. ARCHITECTURE.md (system design, models, directory structure, MCP)
 2. RULES.md (engineering rules, UI standards, Single Responsibility Principle, zero emojis, zero guesswork)
 3. TESTING.md (test suite architecture and table-driven test patterns)
-4. WORKFLOW.md (hunter methodology, pipeline stages, tool isolation, debugging runbook)
+4. WORKFLOW.md (security methodology, pipeline stages, tool isolation, debugging runbook)
 5. CHANGELOG.md (current progress and recent modifications)
 6. personal.md (operator tracking, active bugs, and feature wishlist)
 
-The Hunter's Perspective and Methodology Pipeline:
-Always approach tasks with a bug bounty hunter's mindset (prioritizing high ROI over noise, stealth, progressive data chaining, and actionable reproduction). Structure your thinking around the methodology stages established in the architecture:
-- Subdomain & OSINT Enumeration: Expand perimeter passively, resolve DNS, eliminate wildcards, enforce strict scope.
-- Port & Network Scanning: Uncover non-standard ports and exposed services where dev/staging/admin interfaces hide.
-- Live HTTP/S Probing & Fingerprinting: Validate active web targets, detect tech stacks, calculate priority scores.
-- Crawling & Endpoint Discovery: Mine archives and spider dynamic applications for hidden API routes and parameters.
-- Content Discovery & Fuzzing: Surgical directory/file brute forcing for high-value exposures with calibrated rate limits.
-- Vulnerability Assessment & Verification: High-confidence vulnerability testing with verified, executable cURL reproductions.
-(As BHF evolves, adapt and integrate new methodology stages and specialized tools into this progressive funnel without hardcoding assumptions).
+Core Philosophy:
+Reliability over quantity. Evidence over assumptions. Verification over speculation.
+We are building a professional security engineering platform, not a collection of scripts that blindly throw payloads at targets.
+
+Target Architecture & Major Layers:
+- Layer A: Reconnaissance & Discovery (Web reconnaissance and network discovery normalized into shared models).
+- Layer B: Interactive Application Intelligence (Isolated browser session, traffic interception, categorization into auth, admin, uploads, search, APIs, parameter mapping, and state transitions).
+- Layer C: Intelligent Security Assessment (Hybrid AI planning + deterministic verification engines, reproducible request/response evidence, explicit confidence levels).
+- AI Integration: Hybrid architecture (deterministic engines for repeatability and validation; AI agents for comprehension, traffic analysis, and test planning; multi-provider support).
+- Network Security Expansion: Local network discovery, host/service enumeration, Active Directory assessment, privilege mapping, controlled validation, sharing unified asset/evidence store.
 
 Core Engineering Commandments:
 - Follow the Single Responsibility Principle: each file has one single job.
 - Use Conventional Commits naming methodology (feat, fix, refactor, test, docs, chore).
 - UI must remain clean, minimal, developer-grade GitHub Dark (#0d1117). Strictly NO AI glow, NO neon tropes, NO emojis.
-- Every feature must directly serve the bug hunting cause without generating excessive or reckless traffic.
+- Every assessment check must directly serve the security assessment cause with safe defaults and calibrated rate limits.
+- Never report unverified scanner alerts as findings; every finding must include reproducible evidence and verified impact.
 - Never guess causes of bugs; investigate methodically using logs and reproduction.
 - Ensure all Go tests pass via 'go test ./...' before completing your task.
 - Track all changes in CHANGELOG.md.

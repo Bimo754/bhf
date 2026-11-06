@@ -33,29 +33,29 @@ export const DeleteTargetModal: React.FC<DeleteTargetModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
-      <div className="bg-[#161b22] border border-[#30363d] rounded-md max-w-md w-full p-5 relative shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+      <div className="bg-[#0e1420] border border-white/[0.08] rounded-2xl max-w-md w-full p-6 relative shadow-2xl space-y-4">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-100"
+          className="absolute top-5 right-5 text-slate-400 hover:text-white transition-colors"
         >
           <X className="w-4 h-4" />
         </button>
 
-        <div className="flex items-center space-x-2.5 mb-3 text-red-400">
-          <Trash2 className="w-4 h-4 text-red-400" />
-          <h3 className="text-sm font-bold text-zinc-100 font-mono">Delete Target Scope</h3>
+        <div className="flex items-center space-x-2.5 text-rose-400">
+          <Trash2 className="w-4 h-4 text-rose-400" />
+          <h3 className="text-sm font-bold text-slate-100 font-mono">Delete Target Scope</h3>
         </div>
 
-        <p className="text-xs text-zinc-300 leading-relaxed mb-3">
-          Are you sure you want to delete <strong className="font-mono text-zinc-100">{target.domain}</strong>?
+        <p className="text-xs text-slate-300 leading-relaxed">
+          Are you sure you want to delete <strong className="font-mono text-slate-100">{target.domain}</strong>?
         </p>
 
-        <p className="text-[11px] text-zinc-500 mb-4 bg-[#0d1117] p-2.5 rounded border border-[#21262d]">
-          This action will permanently remove this target program, along with all its recorded scans, logs, and discovered assets.
+        <p className="text-[11px] text-slate-400 bg-white/[0.02] p-3 rounded-xl border border-white/[0.04]">
+          This action permanently removes this target scope, along with its recorded scans, logs, traffic, and discovered assets.
         </p>
 
-        <div className="flex justify-end space-x-2 pt-2 border-t border-[#21262d]">
+        <div className="flex justify-end space-x-2 pt-3 border-t border-white/[0.04]">
           <Button variant="ghost" size="sm" onClick={onClose} disabled={isDeleting}>
             Cancel
           </Button>

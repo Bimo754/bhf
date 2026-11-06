@@ -291,12 +291,12 @@ export const VisualGallery: React.FC<VisualGalleryProps> = ({
                       {onLaunchScan && (
                         <button
                           type="button"
-                          onClick={() => onLaunchScan('nuclei', ['-u', liveURL])}
+                          onClick={() => onLaunchScan('katana', ['-u', liveURL])}
                           className="flex items-center space-x-1 px-1.5 py-0.5 rounded text-[10px] bg-[#21262d] border border-[#30363d] hover:border-zinc-500 text-zinc-300 hover:text-zinc-100 transition"
-                          title="Scan this target with Nuclei"
+                          title="Spider and extract routes from this live target"
                         >
                           <Play className="w-2.5 h-2.5 fill-current text-blue-400" />
-                          <span>Scan</span>
+                          <span>Crawl</span>
                         </button>
                       )}
                     </div>

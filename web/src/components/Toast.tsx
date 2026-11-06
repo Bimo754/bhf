@@ -35,17 +35,17 @@ const ToastItem: React.FC<{ toast: ToastMessage; onDismiss: (id: string) => void
   }, [toast.id, onDismiss]);
 
   return (
-    <div className="pointer-events-auto flex items-start space-x-3 bg-[#161b22] border border-[#30363d] rounded-md p-3 shadow-xl shadow-black/50 text-xs font-mono animate-in slide-in-from-bottom-2 fade-in duration-200">
+    <div className="pointer-events-auto flex items-start space-x-3 bg-[#0e1420] border border-white/[0.08] rounded-xl p-3.5 shadow-2xl text-xs font-mono animate-in slide-in-from-bottom-2 fade-in duration-200">
       <div className="shrink-0 mt-0.5">
         {toast.type === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
         {toast.type === 'error' && <AlertCircle className="w-4 h-4 text-rose-400" />}
-        {toast.type === 'info' && <Info className="w-4 h-4 text-blue-400" />}
+        {toast.type === 'info' && <Info className="w-4 h-4 text-indigo-400" />}
       </div>
 
       <div className="flex-1 min-w-0">
-        <h5 className="font-semibold text-zinc-100">{toast.title}</h5>
+        <h5 className="font-semibold text-slate-100">{toast.title}</h5>
         {toast.message && (
-          <p className="text-zinc-400 text-[11px] mt-0.5 break-words whitespace-pre-wrap max-h-48 overflow-y-auto pr-1">
+          <p className="text-slate-400 text-[11px] mt-0.5 break-words whitespace-pre-wrap max-h-48 overflow-y-auto pr-1">
             {toast.message}
           </p>
         )}
@@ -53,7 +53,7 @@ const ToastItem: React.FC<{ toast: ToastMessage; onDismiss: (id: string) => void
 
       <button
         onClick={() => onDismiss(toast.id)}
-        className="text-zinc-500 hover:text-zinc-300 p-0.5 rounded transition"
+        className="text-slate-500 hover:text-slate-300 p-0.5 rounded-lg transition"
       >
         <X className="w-3.5 h-3.5" />
       </button>

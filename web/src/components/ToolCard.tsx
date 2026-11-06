@@ -25,99 +25,106 @@ export const ToolCard: React.FC<ToolCardProps> = ({
   onViewLogs,
   onStop,
 }) => {
-  const getStatusBadge = () => {
+  const getStatusIndicator = () => {
     if (isRunning) {
       return (
-        <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-          <span>RUNNING</span>
+        <span className="flex items-center space-x-1.5 text-xs text-sky-400 font-mono">
+          <span className="w-2 h-2 rounded-full bg-sky-400 animate-pulse" />
+          <span>running</span>
         </span>
       );
     }
-    if (!latestScan) return null;
+    if (!latestScan) {
+      return (
+        <span className="flex items-center space-x-1.5 text-xs text-slate-500 font-mono">
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />
+          <span>ready</span>
+        </span>
+      );
+    }
     if (latestScan.status === 'COMPLETED') {
       return (
-        <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+        <span className="flex items-center space-x-1.5 text-xs text-emerald-400 font-mono">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-          <span>COMPLETED</span>
+          <span>completed</span>
         </span>
       );
     }
     if (latestScan.status === 'FAILED') {
       return (
-        <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-red-500/10 text-red-400 border border-red-500/20">
-          <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
-          <span>FAILED</span>
+        <span className="flex items-center space-x-1.5 text-xs text-rose-400 font-mono">
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+          <span>failed</span>
         </span>
       );
     }
-    if (latestScan.status === 'STOPPED') {
-      return (
-        <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-zinc-800 text-zinc-400 border border-zinc-700">
-          <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
-          <span>STOPPED</span>
-        </span>
-      );
-    }
-    return null;
+    return (
+      <span className="flex items-center space-x-1.5 text-xs text-slate-500 font-mono">
+        <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />
+        <span>{latestScan.status.toLowerCase()}</span>
+      </span>
+    );
   };
 
   return (
-    <div className="bg-[#161b22] border border-[#30363d] rounded-md p-3.5 flex items-center justify-between hover:border-zinc-500 transition-colors">
-      <div className="flex items-center space-x-2.5">
+    <div className="group bg-[#0e1420]/80 hover:bg-[#141b2b]/90 border border-white/[0.05] hover:border-white/[0.12] rounded-xl p-3 flex items-center justify-between transition-all duration-150">
+      <div className="flex items-center space-x-3 min-w-0">
         {stepNumber !== undefined && (
-          <span
-            className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold text-zinc-400 bg-[#21262d] border border-[#30363d]"
-            title={`Step ${stepNumber} in this methodology stage`}
-          >
-            #{stepNumber < 10 ? `0${stepNumber}` : stepNumber}
+          <span className="text-[11px] font-mono text-slate-500 w-5 text-right shrink-0 select-none">
+            {stepNumber < 10 ? `0${stepNumber}` : stepNumber}
           </span>
         )}
-        <h4 className="text-sm font-semibold text-zinc-100 font-mono tracking-wide">
-          {tool.name}
-        </h4>
-        {getStatusBadge()}
+
+        <div className="min-w-0">
+          <div className="flex items-center space-x-2.5">
+            <h4 className="text-xs font-semibold text-slate-100 font-mono tracking-wide truncate">
+              {tool.name}
+            </h4>
+            {getStatusIndicator()}
+          </div>
+          <p className="text-[11px] text-slate-400 truncate max-w-sm mt-0.5">
+            {tool.description}
+          </p>
+        </div>
       </div>
 
-      <div className="flex items-center space-x-1.5">
+      <div className="flex items-center space-x-1.5 shrink-0 ml-3">
         {isRunning && latestScan ? (
           <>
             <Button
               variant="danger"
-              size="sm"
+              size="xs"
               onClick={() => onStop(latestScan.id)}
-              className="!py-1 !px-2.5 text-xs font-mono"
+              className="flex items-center space-x-1 font-mono"
             >
-              <Square className="w-3 h-3 mr-1 fill-current" />
-              Stop
+              <Square className="w-2.5 h-2.5 fill-current" />
+              <span>Stop</span>
             </Button>
-            <Button
-              variant="secondary"
-              size="sm"
+            <button
               onClick={() => onViewLogs(latestScan.id)}
-              className="!p-1.5"
-              title="Inspect live console"
+              title="Inspect logs"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors"
             >
-              <Terminal className="w-3.5 h-3.5 text-zinc-300" />
-            </Button>
+              <Terminal className="w-3.5 h-3.5" />
+            </button>
           </>
         ) : (
           <>
             <Button
-              variant="primary"
-              size="sm"
+              variant="secondary"
+              size="xs"
               onClick={() => onRunClick(tool.name)}
-              className="!py-1 !px-3 text-xs font-mono"
-              title="Run tool with standard flags"
+              className="font-mono text-slate-300 hover:text-white"
+              title="Run tool with defaults"
             >
-              <Play className="w-3 h-3 mr-1 fill-current" />
-              Run
+              <Play className="w-2.5 h-2.5 mr-1 fill-current text-slate-400 group-hover:text-indigo-400 transition-colors" />
+              <span>Run</span>
             </Button>
 
             <button
               onClick={() => onConfigClick(tool)}
-              title="Configure custom CLI flags"
-              className="p-1.5 rounded text-zinc-400 hover:text-zinc-100 hover:bg-[#21262d] border border-[#30363d] transition-colors"
+              title="Configure arguments"
+              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/[0.06] transition-colors"
             >
               <Sliders className="w-3.5 h-3.5" />
             </button>
@@ -125,8 +132,8 @@ export const ToolCard: React.FC<ToolCardProps> = ({
             {latestScan && (
               <button
                 onClick={() => onViewLogs(latestScan.id)}
-                title="View previous output"
-                className="p-1.5 rounded text-zinc-400 hover:text-zinc-100 hover:bg-[#21262d] border border-[#30363d] transition-colors"
+                title="View output"
+                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/[0.06] transition-colors"
               >
                 <Terminal className="w-3.5 h-3.5" />
               </button>

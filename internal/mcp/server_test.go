@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/diamond/bhf/internal/assessment"
 	"github.com/diamond/bhf/internal/database"
+	"github.com/diamond/bhf/internal/models"
 	"github.com/diamond/bhf/internal/tools"
 )
 
@@ -66,5 +68,83 @@ func TestMCPServerProtocol(t *testing.T) {
 	resp = srv.HandleMessage(ctx, callStatsReq)
 	if resp == nil || resp.Error != nil {
 		t.Fatalf("expected successful get_target_stats response, got: %+v", resp)
+	}
+
+	// 5. Test tools/call query_traffic and get_parameter_graph
+	trafficRepo := database.NewTrafficRepo(db)
+	srv.SetTrafficRepo(trafficRepo)
+
+	trafficArgs, _ := json.Marshal(map[string]any{
+		"name": "query_traffic",
+		"arguments": map[string]any{
+			"target_id": target.ID,
+		},
+	})
+	callTrafficReq := []byte(`{"jsonrpc":"2.0","id":5,"method":"tools/call","params":` + string(trafficArgs) + `}`)
+	resp = srv.HandleMessage(ctx, callTrafficReq)
+	if resp == nil || resp.Error != nil {
+		t.Fatalf("expected successful query_traffic response, got: %+v", resp)
+	}
+
+	graphArgs, _ := json.Marshal(map[string]any{
+		"name": "get_parameter_graph",
+		"arguments": map[string]any{
+			"target_id": target.ID,
+		},
+	})
+	callGraphReq := []byte(`{"jsonrpc":"2.0","id":6,"method":"tools/call","params":` + string(graphArgs) + `}`)
+	resp = srv.HandleMessage(ctx, callGraphReq)
+	if resp == nil || resp.Error != nil {
+		t.Fatalf("expected successful get_parameter_graph response, got: %+v", resp)
+	}
+
+	// 6. Test run_assessment
+	scanRepo := database.NewScanRepo(db)
+	assessmentEngine := assessment.NewAssessmentEngine(findingRepo, nil)
+	srv.SetAssessmentEngine(assessmentEngine, scanRepo)
+
+	_ = trafficRepo.Insert(&models.TrafficRecord{
+		TargetID:           target.ID,
+		Method:             "GET",
+		URL:                "https://test.com/login?token=abc",
+		Path:               "/login",
+		Host:               "test.com",
+		ResponseStatusCode: 200,
+		Category:           "auth",
+	})
+
+	assessArgs, _ := json.Marshal(map[string]any{
+		"name": "run_assessment",
+		"arguments": map[string]any{
+			"target_id": target.ID,
+		},
+	})
+	callAssessReq := []byte(`{"jsonrpc":"2.0","id":7,"method":"tools/call","params":` + string(assessArgs) + `}`)
+	resp = srv.HandleMessage(ctx, callAssessReq)
+	if resp == nil || resp.Error != nil {
+		t.Fatalf("expected successful run_assessment response, got: %+v", resp)
+	}
+
+	// 7. Test list_network_hosts and list_network_services
+	hostRepo := database.NewHostRepo(db)
+	serviceRepo := database.NewServiceRepo(db)
+	srv.SetNetworkRepos(hostRepo, serviceRepo)
+
+	_ = hostRepo.Upsert(&models.Host{
+		TargetID: target.ID,
+		IP:       "192.168.1.1",
+		Status:   "up",
+	})
+
+	netArgs, _ := json.Marshal(map[string]any{
+		"name": "list_network_hosts",
+		"arguments": map[string]any{
+			"target_id": target.ID,
+		},
+	})
+	callNetReq := []byte(`{"jsonrpc":"2.0","id":8,"method":"tools/call","params":` + string(netArgs) + `}`)
+	resp = srv.HandleMessage(ctx, callNetReq)
+	if resp == nil || resp.Error != nil {
+		t.Fatalf("expected successful list_network_hosts response, got: %+v", resp)
 	}
 }

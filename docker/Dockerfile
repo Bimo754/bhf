@@ -22,7 +22,6 @@ ENV GOTOOLCHAIN=auto
 RUN go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest && \
     go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest && \
     go install -v github.com/projectdiscovery/katana/cmd/katana@latest && \
-    go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest && \
     go install -v github.com/projectdiscovery/dnsx/cmd/dnsx@latest && \
     go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest && \
     go install -v github.com/tomnomnom/assetfinder@latest && \
@@ -31,7 +30,6 @@ RUN go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest 
     go install -v github.com/PentestPad/subzy@latest && \
     go install -v github.com/projectdiscovery/tlsx/cmd/tlsx@latest && \
     CGO_ENABLED=1 go install -v github.com/BishopFox/jsluice/cmd/jsluice@latest && \
-    go install -v github.com/devploit/nomore403@latest && \
     go install -v github.com/sa7mon/s3scanner@latest
 
 # ==============================================================================
@@ -72,12 +70,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     chromium \
     && rm -rf /var/lib/apt/lists/* && \
     ln -sf /usr/bin/chromium /usr/bin/google-chrome
-
-# Download nomore403 fuzzing payloads
-RUN git clone --depth 1 https://github.com/devploit/nomore403.git /tmp/nomore403 && \
-    mkdir -p /opt/nomore403 && \
-    cp -r /tmp/nomore403/payloads /opt/nomore403/payloads && \
-    rm -rf /tmp/nomore403
 
 WORKDIR /app
 

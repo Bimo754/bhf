@@ -32,9 +32,9 @@ func TestFindingRepo(t *testing.T) {
 	scan := &models.Scan{
 		ID:        "scan-1",
 		TargetID:  target.ID,
-		ToolName:  "nuclei",
+		ToolName:  "assessment",
 		Status:    models.StatusCompleted,
-		Command:   "nuclei -u example.com",
+		Command:   "assessment -u example.com",
 		StartedAt: time.Now().UTC(),
 	}
 	if err := scanRepo.Create(scan); err != nil {
@@ -45,7 +45,7 @@ func TestFindingRepo(t *testing.T) {
 		ID:          "finding-1",
 		TargetID:    target.ID,
 		ScanID:      scan.ID,
-		ToolName:    "nuclei",
+		ToolName:    "assessment",
 		Severity:    models.SeverityHigh,
 		Name:        "Git Config Disclosure",
 		MatchedAt:   "https://example.com/.git/config",
@@ -56,7 +56,7 @@ func TestFindingRepo(t *testing.T) {
 		ID:          "finding-2",
 		TargetID:    target.ID,
 		ScanID:      scan.ID,
-		ToolName:    "nuclei",
+		ToolName:    "assessment",
 		Severity:    models.SeverityCritical,
 		Name:        "Remote Code Execution",
 		MatchedAt:   "https://example.com/api/eval",

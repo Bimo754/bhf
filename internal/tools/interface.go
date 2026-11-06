@@ -20,7 +20,7 @@ const (
 	CategoryFuzzing       Category = "Fuzzing & Content Discovery"
 )
 
-// CleanDomain normalizes a target domain by removing wildcards, protocols, and trailing slashes.
+// CleanDomain normalizes a target domain by removing wildcards, protocols, trailing slashes, and port numbers.
 func CleanDomain(d string) string {
 	d = strings.TrimSpace(strings.ToLower(d))
 	d = strings.TrimPrefix(d, "*.")
@@ -28,6 +28,9 @@ func CleanDomain(d string) string {
 	d = strings.TrimPrefix(d, "https://")
 	d = strings.TrimPrefix(d, "http://")
 	d = strings.TrimRight(d, "/")
+	if idx := strings.Index(d, ":"); idx != -1 {
+		d = d[:idx]
+	}
 	return d
 }
 

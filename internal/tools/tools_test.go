@@ -369,29 +369,6 @@ func TestArjunParser(t *testing.T) {
 	}
 }
 
-func TestNomore403Parser(t *testing.T) {
-	tool := tools.NewNomore403Tool()
-	execCtx := newTestContext("target.com")
-
-	rawOutput := []string{
-		"[200 OK] https://target.com/admin/ (Header: X-Forwarded-For: 127.0.0.1)",
-		"[403 Forbidden] https://target.com/admin/login",
-	}
-
-	result, err := tool.Run(execCtx, rawOutput)
-	if err != nil {
-		t.Fatalf("Nomore403 Run returned unexpected error: %v", err)
-	}
-
-	if len(result.Findings) != 1 {
-		t.Fatalf("expected 1 bypass finding, got %d", len(result.Findings))
-	}
-
-	if result.Findings[0].Severity != models.SeverityHigh {
-		t.Errorf("expected High severity, got %v", result.Findings[0].Severity)
-	}
-}
-
 func TestCorsyParser(t *testing.T) {
 	tool := tools.NewCorsyTool()
 	execCtx := newTestContext("target.com")

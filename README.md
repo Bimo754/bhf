@@ -1,13 +1,13 @@
-# BHF - Bug Hunting Framework
+# BHF — Bug Hunting & Security Assessment Platform
 
-A fast, lightweight, and modular bug bounty reconnaissance framework built with Go, React, and embedded SQLite.
+An extensible, evidence-driven security assessment and penetration testing automation platform built with Go, React, and embedded SQLite.
 
 ---
 
 ## Quick Start
 
 ### Docker (Recommended)
-Runs all pre-compiled recon tools in a single isolated approximately 350 MB container:
+Runs all pre-compiled tools and execution engines in a single isolated ~350 MB container:
 
 ```bash
 docker compose up -d --build
@@ -25,33 +25,38 @@ make build
 
 ---
 
-## Reconnaissance Pipeline
+## Architectural Layers
 
-1. **Subdomain and OSINT Enumeration**: `subfinder`, `assetfinder`, `theharvester`, `dnsx`
-2. **Port and Network Scanning**: `naabu`
-3. **Live Host Probing**: `httpx`
-4. **Crawling and URL Discovery**: `katana`, `gau`
-5. **Content Discovery and Fuzzing**: `ffuf`
-6. **Vulnerability Assessment**: `nuclei`
+1. **Reconnaissance & Discovery**:
+   - Web: Subdomain enumeration, DNS wildcard filtering, HTTP probing, technology fingerprinting, URL archive extraction, and parameter discovery (`subfinder`, `assetfinder`, `theharvester`, `dnsx`, `httpx`, `tlsx`, `katana`, `gau`, `uro`, `jsluice`, `ffuf`, `arjun`).
+   - Network: Subnet scanning, host identification, port/service enumeration, and service fingerprinting (`naabu`).
+2. **Interactive Application Intelligence**:
+   - Isolated browser exploration, DOM state traversal, form and API identification.
+   - HTTP traffic interception, transaction categorization (authentication, registration, upload, search, admin, API), and parameter graph mapping.
+3. **Intelligent Security Assessment**:
+   - Hybrid AI planning + deterministic verification engines.
+   - Evidence-driven testing with reproducible proof-of-concept evidence (exact HTTP transactions and `curl` commands), confidence levels, and zero speculative alert noise.
+4. **Network & Infrastructure Security**:
+   - Network service audit, Active Directory domain/identity mapping, privilege escalation analysis, and controlled validation.
 
 ---
 
 ## Core Engineering Principles
 
-- **Pure Go Backend**: Fast, compiled, single-binary distribution with embedded pure-Go SQLite in WAL mode (`modernc.org/sqlite`).
-- **100% Operator Control**: Tools execute strictly on demand with live WebSocket log streaming and graceful cancellation with zero data loss.
-- **Strict Modularity**: Single Responsibility Principle enforced across all files (1 file = 1 responsibility).
-- **Strict Scope Guard**: Automatic out-of-scope filtering (`tools.IsInScope()`) prevents third-party domain leakage.
-- **Developer-Grade UI**: Clean GitHub dark aesthetic with live search highlighting, instant 1-click execution, and quick asset clipboard exports. Zero AI neon glow, zero emojis.
-- **Model Context Protocol (MCP)**: Native JSON-RPC 2.0 interface for interoperability with AI agents.
+- **Reliability Over Quantity, Evidence Over Assumptions, Verification Over Speculation**: BHF rejects scanner-driven noise. Every reported finding must possess an explicit confidence level, verified reproducibility, and documented security impact.
+- **Pure Go Backend**: Fast, compiled, single-binary distribution with embedded pure-Go SQLite in WAL mode (`modernc.org/sqlite`). Zero CGO compilation dependency.
+- **100% Operator Control**: Scans and assessments execute strictly on demand with live WebSocket log streaming and graceful cancellation with zero data loss.
+- **Strict Modularity (SRP & DRY)**: Single Responsibility Principle enforced across all files (1 file = 1 responsibility). Single source of truth for scope, scoring, and schema.
+- **Developer-Grade UI**: Clean GitHub Dark aesthetic (`#0d1117`) with live search highlighting, instant 1-click execution, and quick asset clipboard exports. Zero AI neon glow, zero emojis.
+- **Model Context Protocol (MCP)**: Native JSON-RPC 2.0 interface supporting stdio and HTTP for seamless interoperability with autonomous AI agents.
 
 ---
 
 ## Documentation
 
-- [System Architecture](ARCHITECTURE.md): Complete system blueprint, execution pipeline, and data models.
-- [Engineering Rules](RULES.md): Mandatory architectural constraints, UI design standards, and debugging rules.
-- [Testing Guidelines](TESTING.md): Test architecture, table-driven test patterns, and pre-commit checklist.
-- [Development Workflow](WORKFLOW.md): Feature addition lifecycle, dependency isolation, and session starter prompt.
+- [System Architecture](ARCHITECTURE.md): Complete system blueprint, major architectural layers, evidence lifecycle, and data models.
+- [Engineering Rules](RULES.md): Mandatory architectural constraints, UI design standards, evidence requirements, and debugging rules.
+- [Testing Guidelines](TESTING.md): Test architecture, deterministic verification patterns, and pre-commit checklist.
+- [Development Workflow](WORKFLOW.md): Assessment methodology stages, feature lifecycle, and session starter prompt.
 - [Changelog](CHANGELOG.md): Progress tracking and release history.
-- [Personal Tracker](personal.md): Operator scratchpad for logging active bugs, feature requests, and target notes.
+- [Personal Tracker](personal.md): Operator scratchpad for logging active bugs, feature roadmap, and assessment notes.

@@ -49,73 +49,73 @@ export const CreateTargetModal: React.FC<CreateTargetModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
-      <div className="bg-[#161b22] border border-[#30363d] rounded-md max-w-md w-full p-5 relative shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+      <div className="bg-[#0e1420] border border-white/[0.08] rounded-2xl max-w-md w-full p-6 relative shadow-2xl space-y-4">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-100"
+          className="absolute top-5 right-5 text-slate-400 hover:text-white transition-colors"
         >
           <X className="w-4 h-4" />
         </button>
 
-        <div className="mb-4">
-          <h3 className="text-sm font-bold text-zinc-100 font-mono">Add Target Scope</h3>
-          <p className="text-xs text-zinc-400 mt-0.5">Define a root domain or scope program for recon</p>
+        <div>
+          <h3 className="text-sm font-bold text-slate-100 font-mono">Register Target Scope</h3>
+          <p className="text-xs text-slate-400 mt-0.5">Define a root domain or IP host for security assessment</p>
         </div>
 
         {error && (
-          <div className="mb-3 p-2 rounded bg-red-950/70 border border-red-800 text-red-300 text-xs font-mono">
+          <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs font-mono">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="space-y-3.5">
           <div>
-            <label className="block text-xs font-mono text-zinc-300 mb-1">
-              Target / Program Name
+            <label className="block text-xs font-mono text-slate-300 mb-1">
+              Scope Name / Program
             </label>
             <input
               type="text"
-              placeholder="e.g. HackerOne - Target Corp"
+              placeholder="e.g. Target Corp Security Scope"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-[#0d1117] border border-[#30363d] rounded px-3 py-1.5 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 font-mono"
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-mono text-zinc-300 mb-1">
-              Root Domain <span className="text-red-400">*</span>
+            <label className="block text-xs font-mono text-slate-300 mb-1">
+              Target Host or Root Domain <span className="text-rose-400">*</span>
             </label>
             <input
               type="text"
-              placeholder="e.g. target.com"
+              placeholder="e.g. example.com or 192.168.1.100"
               value={domain}
               onChange={(e) => setDomain(e.target.value)}
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500"
               required
-              className="w-full bg-[#0d1117] border border-[#30363d] rounded px-3 py-1.5 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 font-mono"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-mono text-zinc-300 mb-1">
+            <label className="block text-xs font-mono text-slate-300 mb-1">
               Scope Notes (Optional)
             </label>
             <textarea
-              rows={3}
-              placeholder="Out-of-scope subdomains, bounty rules, rate limits..."
+              rows={2}
+              placeholder="Out-of-scope boundaries, rules of engagement, etc."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full bg-[#0d1117] border border-[#30363d] rounded px-3 py-1.5 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 resize-none font-mono"
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500"
             />
           </div>
 
-          <div className="flex justify-end space-x-2 pt-2 border-t border-[#21262d]">
-            <Button variant="ghost" type="button" onClick={onClose}>
+          <div className="flex justify-end space-x-2 pt-3 border-t border-white/[0.04]">
+            <Button variant="ghost" size="sm" type="button" onClick={onClose} disabled={isLoading}>
               Cancel
             </Button>
-            <Button variant="primary" type="submit" isLoading={isLoading}>
-              Add Target
+            <Button variant="primary" size="sm" type="submit" isLoading={isLoading}>
+              Save Target Scope
             </Button>
           </div>
         </form>

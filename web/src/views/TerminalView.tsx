@@ -37,24 +37,24 @@ export const TerminalView: React.FC<TerminalViewProps> = ({
 
   const getStatusDot = (status: string, isCurrentRunning: boolean) => {
     if (isCurrentRunning) {
-      return <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse shrink-0" />;
+      return <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse shrink-0" />;
     }
     if (status === 'COMPLETED') {
-      return <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />;
+      return <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />;
     }
     if (status === 'FAILED') {
-      return <span className="w-2 h-2 rounded-full bg-red-400 shrink-0" />;
+      return <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" />;
     }
-    return <span className="w-2 h-2 rounded-full bg-zinc-500 shrink-0" />;
+    return <span className="w-1.5 h-1.5 rounded-full bg-slate-600 shrink-0" />;
   };
 
   return (
-    <div className="h-[calc(100vh-7.5rem)] flex flex-col space-y-2">
+    <div className="h-[calc(100vh-7.5rem)] flex flex-col space-y-2.5">
       {/* Session Tab Strip */}
-      <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 scrollbar-thin">
+      <div className="flex items-center space-x-1.5 overflow-x-auto pb-1">
         {scans.length === 0 ? (
-          <div className="text-zinc-500 text-xs font-mono py-1 px-2">
-            No execution sessions recorded yet.
+          <div className="text-slate-500 text-xs font-mono py-1 px-2">
+            No active execution sessions recorded yet.
           </div>
         ) : (
           scans.map((s) => {
@@ -65,16 +65,16 @@ export const TerminalView: React.FC<TerminalViewProps> = ({
               <button
                 key={s.id}
                 onClick={() => onSelectScan(s.id)}
-                className={`flex items-center space-x-2 px-3 py-1.5 rounded-md text-xs font-mono border transition-all shrink-0 ${
+                className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-mono transition-all shrink-0 ${
                   isSelected
-                    ? 'bg-[#1c2128] border-zinc-500 text-zinc-100 font-semibold shadow-sm'
-                    : 'bg-[#161b22] border-[#30363d] text-zinc-400 hover:text-zinc-200 hover:border-zinc-600'
+                    ? 'bg-white/[0.08] text-white shadow-sm ring-1 ring-white/10 font-medium'
+                    : 'bg-[#0e1420] text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] border border-white/[0.05]'
                 }`}
               >
                 {getStatusDot(s.status, isThisRunning)}
                 <span>{s.tool_name}</span>
-                <span className="text-[10px] text-zinc-500">
-                  {new Date(s.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                <span className="text-[10px] text-slate-500 font-normal">
+                  {new Date(s.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </button>
             );
@@ -84,28 +84,28 @@ export const TerminalView: React.FC<TerminalViewProps> = ({
 
       {/* Active Command Bar */}
       {activeScan && (
-        <div className="flex items-center justify-between bg-[#161b22] border border-[#30363d] px-3 py-1.5 rounded-md text-xs font-mono">
+        <div className="flex items-center justify-between bg-[#0e1420] border border-white/[0.06] px-3.5 py-2 rounded-xl text-xs font-mono">
           <div className="flex items-center space-x-2 truncate">
-            <span className="text-zinc-500 select-none">$</span>
-            <span className="text-zinc-200 truncate">{activeScan.command}</span>
+            <span className="text-slate-600 select-none">$</span>
+            <span className="text-slate-200 truncate">{activeScan.command}</span>
           </div>
 
           <button
             onClick={handleCopyCommand}
             title="Copy command to clipboard"
-            className="p-1 rounded text-zinc-400 hover:text-zinc-200 hover:bg-[#21262d] transition ml-2 shrink-0"
+            className="p-1 rounded text-slate-400 hover:text-white hover:bg-white/[0.04] transition ml-2 shrink-0"
           >
             {copiedCmd ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
           </button>
         </div>
       )}
 
-      {/* Terminal Output */}
-      <div className="flex-1 overflow-hidden">
+      {/* Terminal Container */}
+      <div className="flex-1 min-h-0">
         <Terminal
           logs={logs}
-          title={activeScan ? `${activeScan.tool_name}` : 'Console'}
-          isRunning={isRunning && activeScan?.status === 'RUNNING'}
+          title={activeScan ? `${activeScan.tool_name} Console` : 'Session Output'}
+          isRunning={isRunning}
           onStop={onStop}
           onSkip={onSkipTool}
           onClear={onClear}

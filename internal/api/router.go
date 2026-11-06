@@ -13,16 +13,20 @@ import (
 
 // RouterConfig holds all handler dependencies to initialize the HTTP routing table.
 type RouterConfig struct {
-	TargetHandler  *TargetHandler
-	ScanHandler    *ScanHandler
-	AssetHandler    *AssetHandler
-	EndpointHandler *EndpointHandler
-	FindingHandler  *FindingHandler
-	ToolHandler     *ToolHandler
-	WSHandler       *WSHandler
-	MCPServer       http.Handler
-	StaticFS        http.FileSystem
-	DataDir         string
+	TargetHandler     *TargetHandler
+	ScanHandler       *ScanHandler
+	AssetHandler      *AssetHandler
+	EndpointHandler   *EndpointHandler
+	TrafficHandler    *TrafficHandler
+	AssessmentHandler *AssessmentHandler
+	AppIntelHandler   *AppIntelHandler
+	NetworkHandler    *NetworkHandler
+	FindingHandler    *FindingHandler
+	ToolHandler       *ToolHandler
+	WSHandler         *WSHandler
+	MCPServer         http.Handler
+	StaticFS          http.FileSystem
+	DataDir           string
 }
 
 // NewRouter constructs a configured chi HTTP router.
@@ -72,6 +76,45 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		if cfg.EndpointHandler != nil {
 			api.Route("/endpoints", func(e chi.Router) {
 				e.Get("/target/{targetID}", cfg.EndpointHandler.ListByTarget)
+			})
+		}
+
+		// Intercepted application traffic (Layer B)
+		if cfg.TrafficHandler != nil {
+			api.Route("/traffic", func(tr chi.Router) {
+				tr.Get("/target/{targetID}", cfg.TrafficHandler.ListByTarget)
+				tr.Get("/target/{targetID}/stats", cfg.TrafficHandler.GetStats)
+				tr.Get("/{id}", cfg.TrafficHandler.GetByID)
+			})
+		}
+
+		// Application intelligence browser & proxy (Layer B)
+		if cfg.AppIntelHandler != nil {
+			api.Route("/appintel", func(ai chi.Router) {
+				ai.Post("/proxy/start", cfg.AppIntelHandler.StartProxy)
+				ai.Post("/proxy/stop", cfg.AppIntelHandler.StopProxy)
+				ai.Get("/proxy/status", cfg.AppIntelHandler.GetProxyStatus)
+				ai.Post("/browser/launch", cfg.AppIntelHandler.LaunchBrowser)
+				ai.Post("/target/{targetID}/auto-explore", cfg.AppIntelHandler.AutoExplore)
+				ai.Get("/target/{targetID}/auto-explore/status", cfg.AppIntelHandler.GetAutoExploreStatus)
+			})
+		}
+
+		// Deterministic security assessment (Layer C)
+		if cfg.AssessmentHandler != nil {
+			api.Route("/assessment", func(as chi.Router) {
+				as.Post("/target/{targetID}/run", cfg.AssessmentHandler.RunTargetAssessment)
+				as.Get("/rules", cfg.AssessmentHandler.ListRules)
+			})
+		}
+
+		// Network security & discovery (Layer A Expansion)
+		if cfg.NetworkHandler != nil {
+			api.Route("/network", func(n chi.Router) {
+				n.Get("/target/{targetID}/hosts", cfg.NetworkHandler.ListHosts)
+				n.Get("/target/{targetID}/services", cfg.NetworkHandler.ListServices)
+				n.Post("/target/{targetID}/scan", cfg.NetworkHandler.ScanSubnet)
+				n.Post("/target/{targetID}/ad-audit", cfg.NetworkHandler.AuditActiveDirectory)
 			})
 		}
 

@@ -9,30 +9,34 @@ export default {
     extend: {
       colors: {
         canvas: {
-          DEFAULT: '#0d1117',
-          subtle: '#161b22',
-          inset: '#010409',
+          DEFAULT: '#080c14',
+          subtle: '#0e1420',
+          elevated: '#141b2b',
+          inset: '#05080e',
         },
         border: {
-          DEFAULT: '#30363d',
-          subtle: '#21262d',
+          DEFAULT: 'rgba(255, 255, 255, 0.07)',
+          subtle: 'rgba(255, 255, 255, 0.04)',
+          focus: 'rgba(99, 102, 241, 0.5)',
         },
         fg: {
-          DEFAULT: '#e6edf3',
-          muted: '#848d97',
-          subtle: '#636e7b',
+          DEFAULT: '#f1f5f9',
+          muted: '#94a3b8',
+          subtle: '#64748b',
         },
         accent: {
-          blue: '#2f81f7',
-          green: '#238636',
-          emerald: '#3fb950',
-          amber: '#d29922',
-          red: '#f85149',
+          DEFAULT: '#4f46e5',
+          hover: '#6366f1',
+          blue: '#3b82f6',
+          emerald: '#10b981',
+          amber: '#f59e0b',
+          rose: '#f43f5e',
+          purple: '#a855f7',
         }
       },
       fontFamily: {
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
-        sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Helvetica', 'Arial', 'sans-serif'],
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Helvetica', 'Arial', 'sans-serif'],
       }
     },
   },

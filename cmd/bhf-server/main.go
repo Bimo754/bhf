@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/diamond/bhf/internal/api"
+	"github.com/diamond/bhf/internal/assessment"
 	"github.com/diamond/bhf/internal/config"
 	"github.com/diamond/bhf/internal/database"
 	"github.com/diamond/bhf/internal/engine"
@@ -47,6 +48,9 @@ func main() {
 	assetRepo := database.NewAssetRepo(db)
 	findingRepo := database.NewFindingRepo(db)
 	endpointRepo := database.NewEndpointRepo(db)
+	trafficRepo := database.NewTrafficRepo(db)
+	hostRepo := database.NewHostRepo(db)
+	serviceRepo := database.NewServiceRepo(db)
 	logRepo := database.NewLogRepo(db)
 
 	// Engine & Streaming
@@ -70,9 +74,7 @@ func main() {
 	registry.Register(tools.NewJsluiceTool())
 	registry.Register(tools.NewFfufTool())
 	registry.Register(tools.NewArjunTool())
-	registry.Register(tools.NewNomore403Tool())
 	registry.Register(tools.NewSubzyTool())
-	registry.Register(tools.NewNucleiTool())
 	registry.Register(tools.NewCorsyTool())
 	registry.Register(tools.NewS3ScannerTool())
 
@@ -83,9 +85,16 @@ func main() {
 	scanHandler := api.NewScanHandler(scanRepo, targetRepo, assetRepo, findingRepo, endpointRepo, logRepo, dispatcher, runner, registry, hub)
 	assetHandler := api.NewAssetHandler(assetRepo)
 	endpointHandler := api.NewEndpointHandler(endpointRepo)
+	trafficHandler := api.NewTrafficHandler(trafficRepo)
 	findingHandler := api.NewFindingHandler(findingRepo)
 	toolHandler := api.NewToolHandler(registry)
 	wsHandler := api.NewWSHandler(hub)
+
+	// Layer B & Layer C Native Engines & Handlers
+	assessmentEngine := assessment.NewAssessmentEngine(findingRepo, nil)
+	assessmentHandler := api.NewAssessmentHandler(assessmentEngine, trafficRepo, targetRepo, scanRepo)
+	appIntelHandler := api.NewAppIntelHandler(trafficRepo, targetRepo, scanRepo)
+	networkHandler := api.NewNetworkHandler(hostRepo, serviceRepo, assetRepo, findingRepo, targetRepo, scanRepo)
 
 	staticFS, err := web.GetFileSystem()
 	if err != nil {
@@ -94,6 +103,9 @@ func main() {
 
 	// MCP Server (Model Context Protocol for AI Agent Interoperability)
 	mcpServer := mcp.NewServer(targetRepo, assetRepo, findingRepo, registry)
+	mcpServer.SetTrafficRepo(trafficRepo)
+	mcpServer.SetAssessmentEngine(assessmentEngine, scanRepo)
+	mcpServer.SetNetworkRepos(hostRepo, serviceRepo)
 	if *mcpMode {
 		log.Println("[BHF] Starting in MCP stdio mode for AI agents...")
 		if err := mcpServer.RunStdio(context.Background()); err != nil {
@@ -103,16 +115,20 @@ func main() {
 	}
 
 	router := api.NewRouter(api.RouterConfig{
-		TargetHandler:   targetHandler,
-		ScanHandler:     scanHandler,
-		AssetHandler:    assetHandler,
-		EndpointHandler: endpointHandler,
-		FindingHandler:  findingHandler,
-		ToolHandler:     toolHandler,
-		WSHandler:       wsHandler,
-		MCPServer:       mcpServer,
-		StaticFS:        staticFS,
-		DataDir:         cfg.DataDir,
+		TargetHandler:     targetHandler,
+		ScanHandler:       scanHandler,
+		AssetHandler:      assetHandler,
+		EndpointHandler:   endpointHandler,
+		TrafficHandler:    trafficHandler,
+		AssessmentHandler: assessmentHandler,
+		AppIntelHandler:   appIntelHandler,
+		NetworkHandler:    networkHandler,
+		FindingHandler:    findingHandler,
+		ToolHandler:       toolHandler,
+		WSHandler:         wsHandler,
+		MCPServer:         mcpServer,
+		StaticFS:          staticFS,
+		DataDir:           cfg.DataDir,
 	})
 
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)

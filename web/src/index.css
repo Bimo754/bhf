@@ -4,37 +4,37 @@
 
 @layer base {
   body {
-    @apply bg-canvas text-fg min-h-screen font-sans;
-    background-color: #0d1117;
-    color: #e6edf3;
+    @apply bg-canvas text-fg min-h-screen font-sans antialiased;
+    background-color: #080c14;
+    color: #f1f5f9;
   }
 
   ::selection {
-    background-color: #1f6feb !important;
+    background-color: #4f46e5 !important;
     color: #ffffff !important;
   }
 
   ::-moz-selection {
-    background-color: #1f6feb !important;
+    background-color: #4f46e5 !important;
     color: #ffffff !important;
   }
 }
 
-/* Crisp developer scrollbar */
+/* Crisp, eye-comfortable minimalist scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0d1117;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #30363d;
-  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #484f58;
+  background: rgba(255, 255, 255, 0.2);
 }

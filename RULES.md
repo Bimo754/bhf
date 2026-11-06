@@ -1,4 +1,4 @@
-# BHF (Bug Hunting Framework) - Engineering and Operating Rules
+# BHF — Bug Hunting & Security Assessment Platform: Engineering and Operating Rules
 
 This document establishes the binding engineering principles, architectural constraints, operator preferences, and quality standards for the BHF project. Every contributor, session, and modification must strictly follow these rules without exception.
 
@@ -7,8 +7,8 @@ This document establishes the binding engineering principles, architectural cons
 ## 1. System and Environment Integrity
 
 - **Zero Host Package Pollution**: Never execute `pacman`, `apt`, `brew`, or install security tools or system libraries directly on the host operating system. Never install global Python `pip` packages.
-- **Isolated Execution**: All tools, recon processes, and services must run inside the single, multi-stage Docker container (`docker compose up -d --build`, approximately 350 MB footprint) or inside isolated project-local virtual environments (`uv` or `python -m venv`).
-- **Anti-Bloat Architecture**: Never recreate Ars0n's architecture. Avoid multi-gigabyte container proliferation, microservice sprawl, or unnecessary background daemons. Maintain a unified, lightweight, and high-speed execution profile.
+- **Isolated Execution**: All tools, recon processes, and services must run inside the single, multi-stage Docker container (approximately 350 MB footprint) or inside isolated project-local virtual environments (`uv` or `python -m venv`).
+- **Anti-Bloat Architecture**: Avoid multi-gigabyte container proliferation, microservice sprawl, or unnecessary background daemons. Maintain a unified, lightweight, and high-speed execution profile centered on a compiled Go backend and embedded SQLite.
 
 ---
 
@@ -16,16 +16,19 @@ This document establishes the binding engineering principles, architectural cons
 
 - **One File = One Responsibility**: Enforced strictly across backend, frontend, tools, and configurations. It is prohibited to combine disparate functionalities into a single file or create monolithic classes.
 - **Backend Directory Boundaries**:
-  - `internal/models/`: One domain entity per file (`target.go`, `scan.go`, `asset.go`, `finding.go`, `log.go`).
-  - `internal/database/`: One repository struct per domain entity (`target_repo.go`, `scan_repo.go`, `asset_repo.go`, `finding_repo.go`, `log_repo.go`). Connection and schema migration belong in dedicated files (`connection.go`, `schema.go`).
+  - `internal/models/`: One domain entity per file (`target.go`, `scan.go`, `asset.go`, `endpoint.go`, `finding.go`, `log.go`, `traffic.go`).
+  - `internal/database/`: One repository struct per domain entity (`target_repo.go`, `scan_repo.go`, `asset_repo.go`, `endpoint_repo.go`, `finding_repo.go`, `log_repo.go`). Connection and schema migration belong in dedicated files (`connection.go`, `schema.go`).
   - `internal/engine/`: Dedicated components for process management (`runner.go`), execution dispatching (`dispatcher.go`), WebSocket distribution (`hub.go`), and message contracts (`stream.go`).
-  - `internal/tools/`: Exactly one file per security tool integration (`subfinder.go`, `httpx.go`, `katana.go`, `ffuf.go`, etc.). Tool interfaces and common helper functions reside in `interface.go`, registry in `registry.go`.
-  - `internal/api/`: One HTTP handler struct per resource domain (`target_handler.go`, `scan_handler.go`, `asset_handler.go`, `finding_handler.go`, `tool_handler.go`, `ws_handler.go`). Response envelopes reside in `response.go`, routing in `router.go`.
-  - `internal/mcp/`: Dedicated Model Context Protocol server exposing assets and findings to external AI agents (`server.go`).
+  - `internal/tools/`: Exactly one file per external security tool integration (`subfinder.go`, `httpx.go`, `katana.go`, `ffuf.go`, etc.). Tool interfaces and common helper functions reside in `interface.go`, registry in `registry.go`.
+  - `internal/appintel/`: Dedicated modules for browser session management (`browser.go`), HTTP traffic interception (`interceptor.go`), traffic categorization (`categorizer.go`), and parameter graph tracking (`parameter_map.go`).
+  - `internal/assessment/`: Dedicated security check modules (`auth_check.go`, `idor_check.go`, `input_check.go`, `upload_check.go`), test engine (`engine.go`), and evidence builder (`evidence.go`).
+  - `internal/network/`: Dedicated modules for network discovery (`discovery.go`), service probing (`service_probe.go`), and Active Directory enumeration (`ad_mapper.go`).
+  - `internal/api/`: One HTTP handler struct per resource domain (`target_handler.go`, `scan_handler.go`, `asset_handler.go`, `endpoint_handler.go`, `finding_handler.go`, `tool_handler.go`, `ws_handler.go`). Response envelopes reside in `response.go`, routing in `router.go`.
+  - `internal/mcp/`: Dedicated Model Context Protocol server exposing assets, endpoints, traffic, and assessment capabilities to external AI agents (`server.go`).
 - **Frontend Directory Boundaries**:
-  - `web/src/types/`: One TypeScript interface/type file per domain entity (`target.ts`, `scan.ts`, `asset.ts`, `finding.ts`, `log.ts`, `tool.ts`).
-  - `web/src/services/`: Dedicated service client per domain (`api.ts`, `targetService.ts`, `scanService.ts`, `assetService.ts`, `findingService.ts`, `toolService.ts`, `wsService.ts`). Never make direct `fetch` calls from inside UI components.
-  - `web/src/components/`: Granular, reusable UI components (`ToolCard.tsx`, `Terminal.tsx`, `AssetTable.tsx`, `Toast.tsx`, `ScopeDropdown.tsx`, `Button.tsx`, `Badge.tsx`, `RunConfigModal.tsx`, `CreateTargetModal.tsx`, `DeleteTargetModal.tsx`).
+  - `web/src/types/`: One TypeScript interface/type file per domain entity (`target.ts`, `scan.ts`, `asset.ts`, `endpoint.ts`, `finding.ts`, `log.ts`, `tool.ts`).
+  - `web/src/services/`: Dedicated service client per domain (`api.ts`, `targetService.ts`, `scanService.ts`, `assetService.ts`, `endpointService.ts`, `findingService.ts`, `toolService.ts`, `wsService.ts`). Never make direct `fetch` calls from inside UI components.
+  - `web/src/components/`: Granular, reusable UI components (`ToolCard.tsx`, `Terminal.tsx`, `AssetTable.tsx`, `SitemapTree.tsx`, `VisualGallery.tsx`, `Toast.tsx`, `ScopeDropdown.tsx`, `Button.tsx`, `Badge.tsx`, `RunConfigModal.tsx`).
   - `web/src/views/`: Dedicated page views that compose components (`ToolsView.tsx`, `AssetsView.tsx`, `FindingsView.tsx`, `TerminalView.tsx`).
 - **No Monolithic Frontends**: Never bundle HTML, CSS, and JavaScript into a tangled blob. Use clean Tailwind classes, separate reusable components, and distinct service layers.
 
@@ -48,7 +51,7 @@ This document establishes the binding engineering principles, architectural cons
 - **The Rule of Three and Pragmatic Abstraction**:
   - *Duplication is cheaper than the wrong abstraction.*
   - Never introduce premature generic abstractions or "god" utility classes for two similar lines of code.
-  - Refactor and extract common helper functions (e.g., in `internal/tools/interface.go` or frontend utility libraries) only when identical domain knowledge or logic is confirmed to repeat across three or more distinct call sites (Rule of Three).
+  - Refactor and extract common helper functions only when identical domain knowledge or logic is confirmed to repeat across three or more distinct call sites (Rule of Three).
 
 ---
 
@@ -65,52 +68,61 @@ This document establishes the binding engineering principles, architectural cons
 - **High-Contrast Selection**: Text selection (`::selection`) must always render high contrast (`#1f6feb` background with `#ffffff` text). Low-contrast selections where text becomes illegible are strictly prohibited.
 - **No Native HTML Form Chrome**: Never use unstyled browser `<select>` dropdowns or generic inputs. Use custom dark-themed components (e.g., `ScopeDropdown`).
 - **No Fluff or Educational Filler**:
-  - BHF is designed for professional penetration testers and bug bounty hunters. Never display tutorial, explanatory, or introductory copy.
-  - Remove redundant explanations of tool capabilities (e.g., do not say *"Fast passive subdomain enumeration tool querying multiple online public sources"* in card headers).
-  - Do not show redundant status labels like *"Installed"* (having the tool ready is an invariant). Show only actionable status pills (`RUNNING`, `COMPLETED`, `FAILED`, `STOPPED`).
+  - BHF is designed for professional penetration testers and security researchers. Never display tutorial, explanatory, or introductory copy.
+  - Remove redundant explanations of tool capabilities in headers.
+  - Do not show redundant status labels like *"Installed"*. Show only actionable status pills (`RUNNING`, `COMPLETED`, `FAILED`, `STOPPED`).
 - **Zero Emojis**: Strictly prohibited across all UI elements, status badges, buttons, logs, code comments, and documentation. Use clean SVG icons (from `lucide-react`) and monospace text labels instead.
 
 ---
 
-## 5. Offensive Security, Hunter Methodology, and Traffic Safety
+## 5. Security Assessment Methodology, Traffic Safety & Evidence Standards
 
-- **The Hunter's Perspective (ROI Over Noise)**:
-  - Think like an elite bug bounty hunter, not an automated script kiddy. Every capability and feature must map directly into the **Progressive Methodology Pipeline** (e.g., Subdomain & OSINT Enumeration, Port & Network Scanning, Live HTTP/S Probing, Crawling & Endpoint Discovery, Content Discovery & Fuzzing, Vulnerability Assessment, and future specialized stages).
-  - High ROI over volume: 5 accurately prioritized, high-value assets are infinitely more valuable than 10,000 dead subdomains.
-- **Pipeline Data Chaining**:
-  - Reconnaissance is a progressive, extensible funnel. Output from one stage must cleanly feed the next:
-    `Target Scope -> Perimeter Mapping -> Resolved Hosts -> Open Services -> Active Web Endpoints -> Crawled Routes & Fuzzed Paths -> Verified Findings`.
-  - As new methodology stages and specialized tools are added, they must integrate seamlessly into this progressive data chain without breaking existing stages.
+- **Core Assessment Philosophy**:
+  - **Reliability over quantity. Evidence over assumptions. Verification over speculation.**
+  - We build a professional security engineering platform, not a collection of scripts that blindly throw payloads at targets.
+  - High ROI over volume: 5 verified, high-impact findings with reproducible proof-of-concept evidence are infinitely more valuable than 10,000 noisy scanner alerts.
+- **Evidence-Driven Validation Invariants**:
+  - Never report a vulnerability merely because a payload was accepted, a response status code changed, or an error was triggered.
+  - Every finding must include:
+    1. An explicit **confidence level** (`CONFIRMED`, `HIGH`, `MEDIUM`, `INFORMATIONAL`).
+    2. **Supporting reproducible evidence** (exact HTTP request/response transaction or executable reproduction command).
+    3. Documented **security impact** demonstrating the real-world exposure.
+  - Observations and hypotheses must remain strictly distinguished from confirmed vulnerabilities.
 - **Network Traffic and WAF Discipline**:
   - Never generate unthrottled request floods that saturate target bandwidth, degrade availability, or trigger rapid IP/WAF bans.
-  - Enforce sane rate limits (`-rl`, `-rate`), concurrency caps (`-c`), and timeout limits (`-timeout`) on all active scanners (Katana, Ffuf, Nuclei, Httpx, Naabu).
+  - Enforce sane rate limits (`-rl`, `-rate`), concurrency caps (`-c`), and timeout limits (`-timeout`) on all active scanners and testing engines.
   - Tools must default to stealthy, production-grade flags rather than aggressive brute-force defaults.
+- **Safe Defaults & Authorization Boundaries**:
+  - All operations must strictly respect authorized scope boundaries.
+  - Destructive testing is strictly prohibited unless explicitly authorized by the operator with configured safeguards.
+- **Protection of Sensitive Material**:
+  - Session credentials, access tokens, API keys, and personal data (PII) captured during traffic analysis or browser exploration must be protected and never displayed in insecure logs or exposed without redaction.
 - **Universal Scope Guard**:
   - Every discovered hostname, IP, and URL must pass through `tools.IsInScope()` before insertion into SQLite.
-  - Crawler and spidering tools (Katana, Gau) must enforce domain boundary flags (`-fs dn`) to prevent spidering third-party sites (e.g., CDNs, social links, OAuth providers).
+  - Crawler and spidering tools must enforce domain boundary flags (`-fs dn`) to prevent spidering third-party sites (e.g., CDNs, social links, OAuth providers).
 - **Graceful Cancellation with Zero Data Loss**:
-  - When an operator halts a scan (`STOP`), the subprocess must terminate cleanly.
-  - The framework must parse all stdout/stderr streams and temporary result files accumulated up to the termination point, saving all discovered assets and findings into SQLite. Never discard collected intelligence upon cancellation.
+  - When an operator halts a scan or assessment (`STOP`), the execution must terminate cleanly.
+  - The framework must parse all stdout/stderr streams, intercepted traffic, and temporary result files accumulated up to the termination point, saving all discovered data into SQLite. Never discard collected intelligence upon cancellation.
 
 ---
 
 ## 6. Technology Stack and Architecture
 
-- **Backend**: Statically typed, high-concurrency Go (Golang). Pure Go SQLite in WAL mode via `modernc.org/sqlite` (zero CGO dependency).
+- **Backend**: Statically typed, high-concurrency Go (Golang). Pure Go SQLite in WAL mode via `modernc.org/sqlite` (zero CGO runtime dependency).
 - **Single-Binary Standalone**: The Go binary embeds the built React frontend (`web/embed.go` using `embed.FS`) to produce a single self-contained executable.
-- **Real-Time Streaming**: Native WebSockets (`/api/ws/scans/{id}/logs`) stream live terminal logs line-by-line and broadcast scan lifecycle updates to connected clients.
-- **AI Agent Interoperability**: Built-in Model Context Protocol (MCP) server supporting stdio mode (`--mcp`) and HTTP endpoint (`POST /api/mcp`) for seamless integration with external AI agent workflows.
+- **Real-Time Streaming**: Native WebSockets (`/api/ws/scans/{id}/logs`) stream live terminal logs and lifecycle updates to connected clients.
+- **Hybrid AI Architecture**: Model Context Protocol (MCP) server supporting stdio mode (`--mcp`) and HTTP endpoint (`POST /api/mcp`) for seamless integration with AI agent workflows, with AI hypotheses strictly validated by deterministic engines.
 
 ---
 
 ## 7. Git and Version Control Standards
 
 - **Conventional Commits**: Commit messages must follow the Conventional Commits specification:
-  - `feat`: A new end-user feature or tool integration (e.g., `feat(tools): add katana crawler integration`)
-  - `fix`: A bug fix (e.g., `fix(parser): prevent panic on malformed nuclei jsonl output`)
+  - `feat`: A new end-user feature or tool integration (e.g., `feat(appintel): add traffic categorizer for auth endpoints`)
+  - `fix`: A bug fix (e.g., `fix(parser): prevent panic on malformed http response`)
   - `refactor`: Code restructuring without functional changes (e.g., `refactor(database): extract asset statistics calculation`)
-  - `test`: Adding or updating test suites (e.g., `test(tools): add unit tests for subfinder output parsing`)
-  - `docs`: Documentation updates (e.g., `docs(rules): formalize code quality standards`)
+  - `test`: Adding or updating test suites (e.g., `test(assessment): add unit tests for idor verification check`)
+  - `docs`: Documentation updates (e.g., `docs(architecture): document application intelligence layer`)
   - `chore`: Maintenance, dependencies, or tooling updates (e.g., `chore(docker): update base debian image`)
   - `perf`: Performance optimizations (e.g., `perf(database): add index on asset host and target_id`)
 - **Atomic Commits**: Keep commits scoped to a single logical change. Do not mix refactors, feature additions, and unrelated fixes in a single commit.
@@ -120,7 +132,7 @@ This document establishes the binding engineering principles, architectural cons
 
 ## 8. Python Dependency and Tool Isolation
 
-- **Virtual Environment Requirement**: Any Python-based tool (such as `theHarvester`) must run inside an isolated virtual environment using `uv tool install` or `python -m venv`.
+- **Virtual Environment Requirement**: Any Python-based tool (such as `theHarvester` or `wafw00f`) must run inside an isolated virtual environment using `uv tool install` or `python -m venv`.
 - **Zero Global Dependency Conflicts**: The Go server invokes Python tools via their isolated virtual environment binary paths (e.g., `/root/.local/bin/theHarvester` or `uv run`). No dependencies may be installed into global system Python site-packages.
 
 ---
@@ -137,7 +149,8 @@ This document establishes the binding engineering principles, architectural cons
 
 ---
 
-## 10. Verification Before Expansion
+## 10. Verification Before Expansion & Quality Gates
 
-- **No Premature Feature Creep**: Do not proceed to adding new tools or features until all existing components are thoroughly tested, verified, and stable.
+- **No Premature Feature Creep**: Do not proceed to adding new tools or assessment modules until all existing components are thoroughly tested, verified, and stable.
 - **Regression Prevention**: Every new capability or bug fix must be accompanied by appropriate unit or integration tests to guarantee long-term stability.
+- **Verification Rule**: Never report a test as passing without actual execution (`go test ./...` and `npm run build`).

@@ -55,7 +55,6 @@ export const AssetTable: React.FC<AssetTableProps> = ({
     }
   };
 
-  // When onFilterChange is supplied, data.assets is already filtered server-side by SQLite
   const assetsToRender = onFilterChange
     ? data.assets
     : (() => {
@@ -110,28 +109,25 @@ export const AssetTable: React.FC<AssetTableProps> = ({
 
   const getPriorityBadge = (score: number = 0) => {
     if (!score || score <= 0) {
-      return <span className="text-zinc-600 font-mono text-[11px]">-</span>;
+      return <span className="text-slate-600 font-mono text-[11px]">-</span>;
     }
-    let badgeStyle = 'text-[#8b949e] bg-[#8b949e]/10 border-[#8b949e]/30';
+    let badgeStyle = 'text-slate-400 bg-white/[0.04] border-white/[0.06]';
     let stars = '★';
-    let starColor = '#8b949e';
 
     if (score >= 40) {
-      badgeStyle = 'text-[#f0883e] bg-[#f0883e]/15 border-[#f0883e]/50';
+      badgeStyle = 'text-orange-400 bg-orange-500/10 border-orange-500/20 font-semibold';
       stars = '★★★';
-      starColor = '#f0883e';
     } else if (score >= 20) {
-      badgeStyle = 'text-[#d29922] bg-[#d29922]/15 border-[#d29922]/50';
+      badgeStyle = 'text-amber-400 bg-amber-500/10 border-amber-500/20 font-semibold';
       stars = '★★';
-      starColor = '#d29922';
     }
 
     return (
       <div className="flex items-center space-x-1.5 font-mono">
-        <span className="text-xs tracking-tighter" style={{ color: starColor }}>
+        <span className="text-xs tracking-tighter text-amber-400/80">
           {stars}
         </span>
-        <span className={`px-1.5 py-0.5 rounded border text-[10px] font-bold ${badgeStyle}`}>
+        <span className={`px-1.5 py-0.2 rounded border text-[10px] ${badgeStyle}`}>
           {score}
         </span>
       </div>
@@ -140,34 +136,34 @@ export const AssetTable: React.FC<AssetTableProps> = ({
 
   const getStatusBadge = (code?: number) => {
     if (!code || code === 0) {
-      return <span className="text-zinc-600 font-mono text-[11px]">-</span>;
+      return <span className="text-slate-600 font-mono text-[11px]">-</span>;
     }
-    let style = 'text-zinc-400 bg-zinc-800/80 border-zinc-700';
-    if (code >= 200 && code < 300) style = 'text-emerald-400 bg-emerald-950/60 border-emerald-800/80';
-    else if (code >= 300 && code < 400) style = 'text-blue-400 bg-blue-950/60 border-blue-800/80';
-    else if (code >= 400 && code < 500) style = 'text-amber-400 bg-amber-950/60 border-amber-800/80';
-    else if (code >= 500) style = 'text-red-400 bg-red-950/60 border-red-800/80';
+    let style = 'text-slate-400 bg-white/[0.04] border-white/[0.06]';
+    if (code >= 200 && code < 300) style = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+    else if (code >= 300 && code < 400) style = 'text-sky-400 bg-sky-500/10 border-sky-500/20';
+    else if (code >= 400 && code < 500) style = 'text-amber-400 bg-amber-500/10 border-amber-500/20';
+    else if (code >= 500) style = 'text-rose-400 bg-rose-500/10 border-rose-500/20';
 
     return (
-      <span className={`px-1.5 py-0.5 rounded border text-[11px] font-mono font-bold ${style}`}>
+      <span className={`px-1.5 py-0.2 rounded border text-[11px] font-mono font-medium ${style}`}>
         {code}
       </span>
     );
   };
 
   return (
-    <div className="bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden flex flex-col">
+    <div className="bg-[#0e1420] border border-white/[0.06] rounded-xl overflow-hidden flex flex-col">
       {/* Top Toolbar */}
-      <div className="p-3 bg-[#161b22] border-b border-[#30363d] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+      <div className="p-3 bg-white/[0.01] border-b border-white/[0.04] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         {/* Search Input */}
         <form onSubmit={handleSearchSubmit} className="relative flex-1 max-w-md">
-          <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-2.5 top-2.5" />
+          <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" />
           <input
             type="text"
             placeholder="Search host, URL, page title, or IP..."
             value={localSearch}
             onChange={(e) => setLocalSearch(e.target.value)}
-            className="w-full bg-[#0d1117] border border-[#30363d] rounded pl-8 pr-3 py-1.5 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 font-mono"
+            className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
           />
         </form>
 
@@ -176,16 +172,16 @@ export const AssetTable: React.FC<AssetTableProps> = ({
           <button
             onClick={onRefresh}
             title="Refresh assets inventory"
-            className="flex items-center space-x-1 px-2.5 py-1.5 rounded bg-[#0d1117] border border-[#30363d] text-zinc-300 hover:text-zinc-100 hover:bg-[#21262d] transition"
+            className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.08] text-slate-300 hover:text-white hover:bg-white/[0.06] transition"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-blue-400' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-indigo-400' : ''}`} />
             <span>Refresh</span>
           </button>
 
           <button
             onClick={handleCopyHosts}
             title="Copy all distinct hosts to clipboard"
-            className="flex items-center space-x-1 px-2.5 py-1.5 rounded bg-[#0d1117] border border-[#30363d] text-zinc-300 hover:text-zinc-100 hover:bg-[#21262d] transition"
+            className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.08] text-slate-300 hover:text-white hover:bg-white/[0.06] transition"
           >
             {copiedAction === 'hosts' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
             <span>Hosts</span>
@@ -194,7 +190,7 @@ export const AssetTable: React.FC<AssetTableProps> = ({
           <button
             onClick={handleCopyURLs}
             title="Copy live URLs to clipboard"
-            className="flex items-center space-x-1 px-2.5 py-1.5 rounded bg-[#0d1117] border border-[#30363d] text-zinc-300 hover:text-zinc-100 hover:bg-[#21262d] transition"
+            className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.08] text-slate-300 hover:text-white hover:bg-white/[0.06] transition"
           >
             {copiedAction === 'urls' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Globe className="w-3.5 h-3.5" />}
             <span>URLs</span>
@@ -203,7 +199,7 @@ export const AssetTable: React.FC<AssetTableProps> = ({
           <button
             onClick={handleExportJSON}
             title="Export page data as JSON"
-            className="p-1.5 rounded bg-[#0d1117] border border-[#30363d] text-zinc-300 hover:text-zinc-100 hover:bg-[#21262d] transition"
+            className="p-1.5 rounded-lg bg-white/[0.03] border border-white/[0.08] text-slate-300 hover:text-white hover:bg-white/[0.06] transition"
           >
             <Download className="w-3.5 h-3.5" />
           </button>
@@ -211,7 +207,7 @@ export const AssetTable: React.FC<AssetTableProps> = ({
       </div>
 
       {/* Filter Chips Bar */}
-      <div className="px-3 py-2 bg-[#0d1117] border-b border-[#21262d] flex items-center justify-between text-xs font-mono">
+      <div className="px-3 py-2 bg-white/[0.01] border-b border-white/[0.04] flex items-center justify-between text-xs font-mono">
         <div className="flex items-center space-x-1 overflow-x-auto">
           {(() => {
             const stats = data.stats || {
@@ -224,21 +220,21 @@ export const AssetTable: React.FC<AssetTableProps> = ({
 
             const chips: { key: FilterChip; label: string }[] = [
               { key: 'all', label: `All (${stats.total})` },
-              { key: 'priority', label: `Priority Targets (${stats.high_priority || 0})` },
+              { key: 'priority', label: `Priority (${stats.high_priority || 0})` },
               { key: 'live', label: `Live Web (${stats.live})` },
               { key: '2xx', label: `2xx OK (${stats.code_2xx})` },
-              { key: '3xx', label: `3xx Redirect (${stats.code_3xx})` },
-              { key: 'errors', label: `4xx / 5xx (${stats.code_4xx_5xx})` },
+              { key: '3xx', label: `3xx (${stats.code_3xx})` },
+              { key: 'errors', label: `4xx/5xx (${stats.code_4xx_5xx})` },
             ];
 
             return chips.map((chip) => (
               <button
                 key={chip.key}
                 onClick={() => handleFilterClick(chip.key)}
-                className={`px-2 py-0.5 rounded text-[11px] transition-colors shrink-0 ${
+                className={`px-2.5 py-1 rounded-lg text-xs transition-colors shrink-0 ${
                   effectiveFilter === chip.key
-                    ? 'bg-[#21262d] text-zinc-100 font-semibold border border-[#30363d]'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#161b22]'
+                    ? 'bg-white/[0.08] text-white font-medium'
+                    : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 {chip.label}
@@ -247,9 +243,9 @@ export const AssetTable: React.FC<AssetTableProps> = ({
           })()}
         </div>
 
-        <div className="text-zinc-500 text-[11px] hidden sm:block">
-          Showing <span className="text-zinc-300 font-semibold">{assetsToRender.length}</span> of{' '}
-          <span className="text-zinc-300 font-semibold">{data.total}</span> assets
+        <div className="text-slate-500 text-[11px] hidden sm:block">
+          Showing <span className="text-slate-300 font-semibold">{assetsToRender.length}</span> of{' '}
+          <span className="text-slate-300 font-semibold">{data.total}</span> assets
         </div>
       </div>
 
@@ -257,17 +253,16 @@ export const AssetTable: React.FC<AssetTableProps> = ({
       <div className="overflow-x-auto flex-1">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="border-b border-[#30363d] bg-[#0d1117] text-zinc-400 uppercase tracking-wider font-mono text-[10px]">
-              {/* Dedicated Priority Column (FEAT-013) */}
+            <tr className="border-b border-white/[0.04] bg-white/[0.02] text-slate-400 text-[10px] uppercase font-mono">
               <th
-                className="py-2.5 px-3 cursor-pointer select-none hover:text-zinc-200 transition"
+                className="py-2.5 px-3 cursor-pointer select-none hover:text-slate-200 transition"
                 onClick={() => onSortChange && onSortChange('priority')}
                 title="Sort by priority score"
               >
                 <div className="flex items-center space-x-1">
                   <span>Priority</span>
                   {sortField === 'priority' && (
-                    sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-400" /> : <ArrowDown className="w-3 h-3 text-blue-400" />
+                    sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-indigo-400" /> : <ArrowDown className="w-3 h-3 text-indigo-400" />
                   )}
                 </div>
               </th>
@@ -276,13 +271,13 @@ export const AssetTable: React.FC<AssetTableProps> = ({
               <th className="py-2.5 px-3">Port / IP</th>
               <th className="py-2.5 px-3">Page Title</th>
               <th className="py-2.5 px-3">Technologies</th>
-              <th className="py-2.5 px-3 text-right">Browse</th>
+              <th className="py-2.5 px-3 text-right">View</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#21262d] font-mono">
+          <tbody className="divide-y divide-white/[0.03] font-mono">
             {assetsToRender.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-10 text-center text-zinc-500 italic">
+                <td colSpan={7} className="py-10 text-center text-slate-500 italic">
                   {data.total === 0
                     ? 'No assets discovered for this scope yet. Run tools from the Methodology pipeline to populate findings.'
                     : 'No assets match the active filter criteria.'}
@@ -293,14 +288,14 @@ export const AssetTable: React.FC<AssetTableProps> = ({
                 const liveURL = asset.url || (asset.status_code ? `https://${asset.host}` : null);
 
                 return (
-                  <tr key={asset.id} className="hover:bg-[#21262d]/40 transition-colors">
-                    {/* Dedicated Priority Column (FEAT-013) */}
+                  <tr key={asset.id} className="hover:bg-white/[0.02] transition-colors">
+                    {/* Dedicated Priority Column */}
                     <td className="py-2 px-3">
                       {getPriorityBadge(asset.priority_score)}
                     </td>
 
                     {/* Host & URL */}
-                    <td className="py-2 px-3 font-semibold text-zinc-200">
+                    <td className="py-2 px-3 font-semibold text-slate-200">
                       <div className="flex flex-col max-w-md">
                         <div className="flex items-center space-x-1.5 truncate">
                           {liveURL ? (
@@ -308,7 +303,7 @@ export const AssetTable: React.FC<AssetTableProps> = ({
                               href={liveURL}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-zinc-100 hover:text-blue-400 truncate font-semibold"
+                              className="text-slate-100 hover:text-indigo-400 truncate font-semibold"
                             >
                               {asset.host}
                             </a>
@@ -317,7 +312,7 @@ export const AssetTable: React.FC<AssetTableProps> = ({
                           )}
                         </div>
                         {asset.url && asset.url !== `https://${asset.host}` && asset.url !== `http://${asset.host}` && (
-                          <span className="text-[11px] text-zinc-500 truncate font-normal">
+                          <span className="text-[11px] text-slate-500 truncate font-normal">
                             {asset.url}
                           </span>
                         )}
@@ -328,14 +323,14 @@ export const AssetTable: React.FC<AssetTableProps> = ({
                     <td className="py-2 px-3">{getStatusBadge(asset.status_code)}</td>
 
                     {/* Port & IP */}
-                    <td className="py-2 px-3 text-zinc-400 text-[11px]">
+                    <td className="py-2 px-3 text-slate-400 text-[11px]">
                       <span>{asset.port ? asset.port : 80}</span>
-                      {asset.ip && <span className="text-zinc-500 ml-1.5">({asset.ip})</span>}
+                      {asset.ip && <span className="text-slate-500 ml-1.5">({asset.ip})</span>}
                     </td>
 
                     {/* Title */}
-                    <td className="py-2 px-3 text-zinc-300 max-w-xs truncate font-sans text-[11px]">
-                      {asset.title || <span className="text-zinc-600">-</span>}
+                    <td className="py-2 px-3 text-slate-300 max-w-xs truncate font-sans text-[11px]">
+                      {asset.title || <span className="text-slate-600">-</span>}
                     </td>
 
                     {/* Technologies */}
@@ -347,13 +342,13 @@ export const AssetTable: React.FC<AssetTableProps> = ({
                             .map((t, idx) => (
                               <span
                                 key={idx}
-                                className="bg-[#0d1117] border border-[#30363d] text-zinc-300 text-[10px] px-1.5 py-0.5 rounded"
+                                className="bg-white/[0.03] border border-white/[0.06] text-slate-300 text-[10px] px-1.5 py-0.5 rounded"
                               >
                                 {t}
                               </span>
                             ))
                         ) : (
-                          <span className="text-zinc-600">-</span>
+                          <span className="text-slate-600">-</span>
                         )}
                       </div>
                     </td>
@@ -369,7 +364,7 @@ export const AssetTable: React.FC<AssetTableProps> = ({
                             <button
                               type="button"
                               onClick={() => setPreviewScreenshot(sUrl)}
-                              className="p-1 rounded hover:bg-[#30363d] text-zinc-400 hover:text-emerald-400 transition"
+                              className="p-1 rounded text-slate-400 hover:text-emerald-400 hover:bg-white/[0.04] transition"
                               title="View web screenshot"
                             >
                               <Camera className="w-3.5 h-3.5" />
@@ -381,13 +376,13 @@ export const AssetTable: React.FC<AssetTableProps> = ({
                             href={liveURL}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="p-1 rounded hover:bg-[#30363d] text-zinc-400 hover:text-blue-400 transition"
-                            title="Open in new browser tab"
+                            className="p-1 rounded text-slate-400 hover:text-indigo-400 hover:bg-white/[0.04] transition"
+                            title="Open in new tab"
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
                           </a>
                         ) : (
-                          <span className="text-zinc-700">-</span>
+                          <span className="text-slate-700">-</span>
                         )}
                       </div>
                     </td>
@@ -400,27 +395,25 @@ export const AssetTable: React.FC<AssetTableProps> = ({
       </div>
 
       {/* Pagination Bar */}
-      <div className="p-2.5 bg-[#0d1117] border-t border-[#30363d] flex items-center justify-between text-xs text-zinc-400 font-mono">
+      <div className="p-2.5 bg-white/[0.01] border-t border-white/[0.04] flex items-center justify-between text-xs text-slate-400 font-mono">
         <div>
-          Page <strong className="text-zinc-200">{currentPage}</strong> of <strong className="text-zinc-200">{totalPages}</strong>
+          Page <strong className="text-slate-200">{currentPage}</strong> of <strong className="text-slate-200">{totalPages}</strong>
         </div>
 
         <div className="flex items-center space-x-1.5">
           <Button
             variant="secondary"
-            size="sm"
+            size="xs"
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage <= 1}
-            className="!p-1"
           >
             <ChevronLeft className="w-3.5 h-3.5" />
           </Button>
           <Button
             variant="secondary"
-            size="sm"
+            size="xs"
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage >= totalPages}
-            className="!p-1"
           >
             <ChevronRight className="w-3.5 h-3.5" />
           </Button>
@@ -430,24 +423,24 @@ export const AssetTable: React.FC<AssetTableProps> = ({
       {/* Screenshot Preview Modal */}
       {previewScreenshot && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="relative bg-[#161b22] border border-[#30363d] rounded-lg max-w-4xl w-full p-4 shadow-2xl flex flex-col space-y-3 font-mono">
-            <div className="flex items-center justify-between border-b border-[#30363d] pb-2">
+          <div className="relative bg-[#0e1420] border border-white/[0.08] rounded-2xl max-w-4xl w-full p-5 shadow-2xl flex flex-col space-y-3 font-mono">
+            <div className="flex items-center justify-between border-b border-white/[0.04] pb-2">
               <div className="flex items-center space-x-2">
                 <Camera className="w-4 h-4 text-emerald-400" />
-                <h4 className="text-xs font-semibold text-zinc-200">Visual Screenshot Preview</h4>
+                <h4 className="text-xs font-semibold text-slate-200">Visual Screenshot Preview</h4>
               </div>
               <button
                 onClick={() => setPreviewScreenshot(null)}
-                className="p-1 rounded text-zinc-400 hover:text-white hover:bg-[#21262d] transition"
+                className="p-1 rounded text-slate-400 hover:text-white hover:bg-white/[0.04] transition"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="overflow-auto max-h-[75vh] flex items-center justify-center bg-[#0d1117] rounded border border-[#30363d] p-2">
+            <div className="overflow-auto max-h-[75vh] flex items-center justify-center bg-[#05080e] rounded-xl border border-white/[0.04] p-2">
               <img
                 src={previewScreenshot}
                 alt="Visual Reconnaissance Screenshot"
-                className="max-w-full h-auto object-contain rounded"
+                className="max-w-full h-auto object-contain rounded-lg"
               />
             </div>
           </div>

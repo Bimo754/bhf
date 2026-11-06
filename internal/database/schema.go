@@ -90,6 +90,59 @@ func MigrateSchema(db *sql.DB) error {
 			UNIQUE(target_id, url)
 		);`,
 
+		`CREATE TABLE IF NOT EXISTS traffic_records (
+			id TEXT PRIMARY KEY,
+			target_id TEXT NOT NULL,
+			scan_id TEXT DEFAULT '',
+			method TEXT NOT NULL,
+			url TEXT NOT NULL,
+			path TEXT NOT NULL,
+			host TEXT NOT NULL,
+			request_headers TEXT DEFAULT '{}',
+			request_body TEXT DEFAULT '',
+			response_status_code INTEGER DEFAULT 0,
+			response_headers TEXT DEFAULT '{}',
+			response_body TEXT DEFAULT '',
+			content_type TEXT DEFAULT '',
+			content_length INTEGER DEFAULT 0,
+			duration_ms INTEGER DEFAULT 0,
+			category TEXT DEFAULT 'general',
+			auth_context TEXT DEFAULT '',
+			parameters TEXT DEFAULT '[]',
+			created_at DATETIME NOT NULL,
+			FOREIGN KEY(target_id) REFERENCES targets(id) ON DELETE CASCADE
+		);`,
+
+		`CREATE TABLE IF NOT EXISTS hosts (
+			id TEXT PRIMARY KEY,
+			target_id TEXT NOT NULL,
+			ip TEXT NOT NULL,
+			hostname TEXT DEFAULT '',
+			os TEXT DEFAULT '',
+			mac TEXT DEFAULT '',
+			status TEXT DEFAULT 'up',
+			created_at DATETIME NOT NULL,
+			FOREIGN KEY(target_id) REFERENCES targets(id) ON DELETE CASCADE,
+			UNIQUE(target_id, ip)
+		);`,
+
+		`CREATE TABLE IF NOT EXISTS services (
+			id TEXT PRIMARY KEY,
+			host_id TEXT NOT NULL,
+			target_id TEXT NOT NULL,
+			port INTEGER NOT NULL,
+			protocol TEXT DEFAULT 'tcp',
+			name TEXT DEFAULT '',
+			product TEXT DEFAULT '',
+			version TEXT DEFAULT '',
+			banner TEXT DEFAULT '',
+			status TEXT DEFAULT 'open',
+			created_at DATETIME NOT NULL,
+			FOREIGN KEY(target_id) REFERENCES targets(id) ON DELETE CASCADE,
+			FOREIGN KEY(host_id) REFERENCES hosts(id) ON DELETE CASCADE,
+			UNIQUE(host_id, port, protocol)
+		);`,
+
 		`CREATE INDEX IF NOT EXISTS idx_scans_target_id ON scans(target_id);`,
 		`CREATE INDEX IF NOT EXISTS idx_assets_target_id ON assets(target_id);`,
 		`CREATE INDEX IF NOT EXISTS idx_assets_host ON assets(host);`,
@@ -99,6 +152,16 @@ func MigrateSchema(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_endpoints_target_id ON endpoints(target_id);`,
 		`CREATE INDEX IF NOT EXISTS idx_endpoints_host ON endpoints(host);`,
 		`CREATE INDEX IF NOT EXISTS idx_endpoints_url ON endpoints(url);`,
+		`CREATE INDEX IF NOT EXISTS idx_traffic_target_id ON traffic_records(target_id);`,
+		`CREATE INDEX IF NOT EXISTS idx_traffic_host ON traffic_records(host);`,
+		`CREATE INDEX IF NOT EXISTS idx_traffic_category ON traffic_records(category);`,
+		`CREATE INDEX IF NOT EXISTS idx_traffic_method ON traffic_records(method);`,
+		`CREATE INDEX IF NOT EXISTS idx_traffic_status ON traffic_records(response_status_code);`,
+		`CREATE INDEX IF NOT EXISTS idx_hosts_target_id ON hosts(target_id);`,
+		`CREATE INDEX IF NOT EXISTS idx_hosts_ip ON hosts(ip);`,
+		`CREATE INDEX IF NOT EXISTS idx_services_target_id ON services(target_id);`,
+		`CREATE INDEX IF NOT EXISTS idx_services_host_id ON services(host_id);`,
+		`CREATE INDEX IF NOT EXISTS idx_services_port ON services(port);`,
 	}
 
 	for _, query := range queries {

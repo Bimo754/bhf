@@ -1,4 +1,4 @@
-# BHF (Bug Hunting Framework) - Testing Strategy and Guidelines
+# BHF — Bug Hunting & Security Assessment Platform: Testing Strategy and Guidelines
 
 This document outlines the testing architecture, testing principles, suite structure, and implementation standards for BHF. It serves as the definitive reference for maintaining high test coverage and preventing regressions without introducing brittle or bloated test code.
 
@@ -8,8 +8,9 @@ This document outlines the testing architecture, testing principles, suite struc
 
 - **Deterministic and Fast**: Tests must execute in milliseconds without external network calls, real port scans, or live web requests against target domains.
 - **Isolated State**: Every database test must operate against a dedicated temporary SQLite database (`t.TempDir()`) or an in-memory instance (`:memory:`), ensuring complete test isolation and zero cross-test interference.
+- **Evidence Verification Testing**: Tests for assessment checks must evaluate deterministic pass/fail rules against recorded HTTP fixtures (requests and responses), ensuring that findings are generated strictly on verified evidence.
 - **Controlled Growth (No Exponential Bloat)**:
-  - Test business logic, parsing accuracy, scoping boundaries, and state transitions.
+  - Test business logic, parsing accuracy, scoping boundaries, state transitions, and verification rules.
   - Avoid writing hundreds of identical redundant tests for simple struct getters.
   - Prefer clean, table-driven tests (`[]struct{ name, input, expected }`) that test multiple scenarios within a single, readable test function.
 - **Zero Flakiness**: Tests must not rely on `time.Sleep()` or arbitrary delays. Synchronize goroutines using channels, wait groups (`sync.WaitGroup`), or context cancellations.
@@ -21,48 +22,56 @@ This document outlines the testing architecture, testing principles, suite struc
 
 ### 2.1 Database Repositories (`internal/database/`)
 
-Tests in this package verify SQLite migrations, CRUD operations, foreign key cascades, and complex analytical queries (such as asset prioritization and finding statistics).
+Tests in this package verify SQLite migrations, CRUD operations, foreign key cascades, and complex analytical queries (such as asset prioritization, endpoint categorization, and finding statistics).
 
 **Key Rules**:
 - Initialize a fresh database with `filepath.Join(t.TempDir(), "test.db")` or `:memory:`.
 - Execute `MigrateSchema(db)` before testing repositories.
-- Verify cascading deletes: deleting a target must automatically clean up associated scans, assets, findings, and logs.
+- Verify cascading deletes: deleting a target must automatically clean up associated scans, assets, endpoints, findings, and logs.
 
 **Reference Implementations**:
 - `internal/database/asset_repo_test.go`: Verifies asset upserts, conflict resolution (`UNIQUE(target_id, host, port)`), and priority score calculation.
-- `internal/database/finding_repo_test.go`: Verifies finding insertions, severity ordering, and aggregate count statistics.
+- `internal/database/endpoint_repo_test.go`: Verifies endpoint insertion, route queries, status code filtering, and deduplication (`UNIQUE(target_id, url)`).
+- `internal/database/finding_repo_test.go`: Verifies finding insertions, severity ordering, reproducible evidence persistence, and aggregate count statistics.
 
-### 2.2 Security Tools and Output Parsers (`internal/tools/`)
+### 2.2 Security Tools & Parsers (`internal/tools/`)
 
-Security tools wrap external CLI binaries. Tool tests must NEVER execute the real binaries or send live packets. Instead, test the parsing engine and scope filtering logic:
+External tool wrappers wrap CLI binaries. Tool tests must NEVER execute real binaries or send live packets. Instead, test the parsing engine and scope filtering logic:
 
 1. **Scoping and Domain Sanitization**:
    - `CleanDomain()`: Verify stripping of `*.`, `https://`, `http://`, ports, and trailing slashes.
-   - `IsInScope()`: Verify that target subdomains are in scope while foreign domains, third-party CDNs, and out-of-scope targets are strictly rejected.
+   - `IsInScope()`: Verify that target subdomains, CIDRs, and IPs are in scope while foreign domains, third-party CDNs, and out-of-scope targets are strictly rejected.
 2. **Parser Unit Tests**:
    - Test `Tool.Run(execCtx, rawOutput)` by supplying fixed strings representing CLI output or JSON lines.
    - Test error handling when output files or stdout lines contain malformed JSON or empty strings.
 
-### 2.3 HTTP API Layer (`internal/api/`)
+### 2.3 Application Intelligence & Traffic Analysis (`internal/appintel/`)
+
+Tests in this package verify HTTP traffic interception, transaction normalization, and traffic classification:
+- **Traffic Categorization**: Verify that login forms, registration endpoints, password resets, file upload endpoints, search forms, and API routes are accurately classified based on path, headers, and request body structures.
+- **Parameter Extraction**: Verify that query parameters, JSON payload keys, and form fields are mapped cleanly into parameter graphs without leaking sensitive tokens or PII.
+
+### 2.4 Intelligent Security Assessment Engine (`internal/assessment/`)
+
+Tests in this package verify deterministic security checks and verification rules:
+- **Verification Rule Accuracy**: Test security check evaluations against fixed HTTP request/response fixture pairs.
+- **False Positive Resistance**: Ensure that mere error responses (e.g. 500 Internal Server Error), generic 403s, or standard reflected query parameters without security impact do not trigger finding records.
+- **Evidence Formatting**: Verify that generated findings include complete `evidence_request`, `evidence_response`, and a valid, reproducible `curl_command`.
+
+### 2.5 HTTP Presentation Layer (`internal/api/`)
 
 API handlers are tested using Go's standard `net/http/httptest` package:
 - Use `httptest.NewRecorder()` to capture HTTP responses.
 - Construct `http.Request` instances via `httptest.NewRequest()`.
 - Inject repository instances backed by an in-memory SQLite database.
-- Assert HTTP status codes, `Content-Type` headers, and JSON response payloads.
+- Assert HTTP status codes, `Content-Type` headers, and JSON response envelopes.
 
-### 2.4 Model Context Protocol (`internal/mcp/`)
+### 2.6 Model Context Protocol (`internal/mcp/`)
 
 Tests in `internal/mcp/server_test.go` verify JSON-RPC 2.0 protocol conformance:
-- `initialize`: Verify protocol version and server capabilities.
+- `initialize`: Verify protocol version (`2024-11-05`) and server capabilities.
 - `tools/list`: Verify that all registered tools and their input schemas are reported.
-- `tools/call`: Verify tool execution (e.g., `list_targets`, `get_target_stats`) and error responses on invalid parameters.
-
-### 2.5 Configuration Loader (`internal/config/`)
-
-Tests in `internal/config/loader_test.go` verify:
-- Default configuration values when environment variables are unset.
-- Correct parsing and overrides when environment variables (`BHF_PORT`, `BHF_HOST`, `BHF_DATA_DIR`) are supplied.
+- `tools/call`: Verify tool execution (e.g., `list_targets`, `list_endpoints`, `get_target_stats`) and structured error responses on invalid parameters.
 
 ---
 
@@ -107,9 +116,9 @@ npm run build
 
 ---
 
-## 4. Standard Table-Driven Test Pattern
+## 4. Standard Table-Driven Test Patterns
 
-When adding new tests in Go, follow this standard table-driven pattern:
+### Pattern A: Scoping and String Sanitization
 
 ```go
 package tools_test
@@ -144,6 +153,73 @@ func TestIsInScope(t *testing.T) {
 			}
 		})
 	}
+}
+```
+
+### Pattern B: Deterministic Security Check Verification
+
+```go
+package assessment_test
+
+import (
+	"testing"
+)
+
+func TestEvaluateIDORBoundary(t *testing.T) {
+	tests := []struct {
+		name             string
+		requestUser      string
+		targetUser       string
+		statusCode       int
+		responseBody     string
+		expectedVerified bool
+		expectedSeverity string
+	}{
+		{
+			name:             "legitimate access to own profile",
+			requestUser:      "user_101",
+			targetUser:       "user_101",
+			statusCode:       200,
+			responseBody:     `{"id": "user_101", "email": "alice@example.com"}`,
+			expectedVerified: false, // expected behavior, not a vulnerability
+			expectedSeverity: "",
+		},
+		{
+			name:             "unauthorized access to other profile returns 403",
+			requestUser:      "user_101",
+			targetUser:       "user_102",
+			statusCode:       403,
+			responseBody:     `{"error": "Forbidden"}`,
+			expectedVerified: false, // properly enforced access control
+			expectedSeverity: "",
+		},
+		{
+			name:             "idor confirmed: unauthorized profile data returned",
+			requestUser:      "user_101",
+			targetUser:       "user_102",
+			statusCode:       200,
+			responseBody:     `{"id": "user_102", "email": "bob@example.com", "ssn": "000-11-2222"}`,
+			expectedVerified: true,
+			expectedSeverity: "high",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// Evaluates deterministic authorization logic against mock response
+			verified, severity := evaluateMockResponse(tc.requestUser, tc.targetUser, tc.statusCode, tc.responseBody)
+			if verified != tc.expectedVerified || severity != tc.expectedSeverity {
+				t.Errorf("evaluateIDOR = (%v, %q); want (%v, %q)", verified, severity, tc.expectedVerified, tc.expectedSeverity)
+			}
+		})
+	}
+}
+
+func evaluateMockResponse(reqUser, targetUser string, code int, body string) (bool, string) {
+	if reqUser != targetUser && code == 200 && len(body) > 0 {
+		return true, "high"
+	}
+	return false, ""
 }
 ```
 

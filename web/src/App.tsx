@@ -4,20 +4,26 @@ import { Scan } from './types/scan';
 import { ToolInfo } from './types/tool';
 import { PaginatedAssets } from './types/asset';
 import { PaginatedFindings } from './types/finding';
+import { PaginatedTraffic, TrafficStats } from './types/traffic';
 import { LogEntry, StreamMessage } from './types/log';
+import { Host, NetworkService as NetService } from './types/network';
 import { targetService } from './services/targetService';
 import { scanService } from './services/scanService';
 import { toolService } from './services/toolService';
 import { assetService } from './services/assetService';
 import { findingService } from './services/findingService';
+import { trafficService } from './services/trafficService';
+import { networkService } from './services/networkService';
 import { ScanWebSocket } from './services/wsService';
-import { Navbar } from './components/Navbar';
+import { Navbar, MainTab } from './components/Navbar';
 import { CreateTargetModal } from './components/CreateTargetModal';
 import { DeleteTargetModal } from './components/DeleteTargetModal';
 import { ToastContainer, ToastMessage } from './components/Toast';
 import { FilterChip } from './components/AssetTable';
-import { ToolsView, ActiveQueueState } from './views/ToolsView';
-import { AssetsView } from './views/AssetsView';
+import { ActiveQueueState } from './views/ToolsView';
+import { WebSecurityView, WebSecuritySubTab } from './views/WebSecurityView';
+import { NetworkSecurityView } from './views/NetworkSecurityView';
+import { ActiveDirectoryView } from './views/ActiveDirectoryView';
 import { FindingsView } from './views/FindingsView';
 import { TerminalView } from './views/TerminalView';
 
@@ -26,7 +32,8 @@ export const App: React.FC = () => {
   const [activeTarget, setActiveTarget] = useState<Target | null>(null);
   const [tools, setTools] = useState<ToolInfo[]>([]);
   const [scans, setScans] = useState<Scan[]>([]);
-  const [activeTab, setActiveTab] = useState<'tools' | 'assets' | 'findings' | 'terminal'>('tools');
+  const [activeTab, setActiveTab] = useState<MainTab>('web');
+  const [webSubTab, setWebSubTab] = useState<WebSecuritySubTab>('methodology');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -43,6 +50,24 @@ export const App: React.FC = () => {
   const [assetSort, setAssetSort] = useState<string>('priority');
   const [assetOrder, setAssetOrder] = useState<'asc' | 'desc'>('desc');
   const [isAssetsLoading, setIsAssetsLoading] = useState(false);
+
+  // Traffic / App Intel State
+  const [trafficData, setTrafficData] = useState<PaginatedTraffic>({
+    traffic: [],
+    total: 0,
+    page: 1,
+    limit: 50,
+  });
+  const [trafficStats, setTrafficStats] = useState<TrafficStats | null>(null);
+  const [trafficSearch, setTrafficSearch] = useState('');
+  const [trafficCategory, setTrafficCategory] = useState('');
+  const [trafficMethod, setTrafficMethod] = useState('');
+  const [isTrafficLoading, setIsTrafficLoading] = useState(false);
+
+  // Network State
+  const [networkHosts, setNetworkHosts] = useState<Host[]>([]);
+  const [networkServices, setNetworkServices] = useState<NetService[]>([]);
+  const [isNetworkLoading, setIsNetworkLoading] = useState(false);
 
   // Finding State
   const [findingsData, setFindingsData] = useState<PaginatedFindings>({
@@ -89,7 +114,7 @@ export const App: React.FC = () => {
     toolService.list().then(setTools).catch(console.error);
   }, []);
 
-  // When active target changes, refresh its scans, assets, and findings
+  // When active target changes, refresh its scans, assets, traffic, network, and findings
   useEffect(() => {
     if (!activeTarget) return;
 
@@ -106,6 +131,8 @@ export const App: React.FC = () => {
 
     loadAssets(1, assetSearch, assetFilter, assetSort, assetOrder);
     loadFindings(1, findingSearch, findingSeverity);
+    loadTraffic(1, trafficSearch, trafficCategory, trafficMethod);
+    loadNetwork();
   }, [activeTarget]);
 
   // Synchronize latest values to refs so WebSocket stream events and callbacks
@@ -183,13 +210,80 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleSelectTab = (tab: 'tools' | 'assets' | 'findings' | 'terminal') => {
+  const loadTraffic = async (
+    page: number,
+    search = trafficSearch,
+    category = trafficCategory,
+    method = trafficMethod
+  ) => {
+    const target = activeTargetRef.current;
+    if (!target) return;
+    setIsTrafficLoading(true);
+    try {
+      const [data, stats] = await Promise.all([
+        trafficService.listByTarget(target.id, page, 50, category, method, search),
+        trafficService.getStats(target.id).catch(() => null),
+      ]);
+      setTrafficData(data);
+      if (stats) setTrafficStats(stats);
+    } catch (err) {
+      console.error('Failed to load traffic', err);
+    } finally {
+      setIsTrafficLoading(false);
+    }
+  };
+
+  const loadNetwork = async () => {
+    const target = activeTargetRef.current;
+    if (!target) return;
+    setIsNetworkLoading(true);
+    try {
+      const [hList, sList] = await Promise.all([
+        networkService.listHosts(target.id).catch(() => []),
+        networkService.listServices(target.id).catch(() => []),
+      ]);
+      setNetworkHosts(hList);
+      setNetworkServices(sList);
+    } catch (err) {
+      console.error('Failed to load network entities', err);
+    } finally {
+      setIsNetworkLoading(false);
+    }
+  };
+
+  const handleSelectTab = (tab: MainTab) => {
     setActiveTab(tab);
-    if (tab === 'assets') {
-      loadAssets(1, assetSearch, assetFilter, assetSort, assetOrder);
+    if (tab === 'web') {
+      if (webSubTab === 'assets') {
+        loadAssets(1, assetSearch, assetFilter, assetSort, assetOrder);
+      } else if (webSubTab === 'appintel') {
+        loadTraffic(1, trafficSearch, trafficCategory, trafficMethod);
+      }
+    } else if (tab === 'network' || tab === 'ad') {
+      loadNetwork();
     } else if (tab === 'findings') {
       loadFindings(1, findingSearch, findingSeverity);
     }
+  };
+
+  // Cross-discipline dynamic handoffs
+  const handleHandoffToWebSecurity = (webHost: string, port: number) => {
+    setActiveTab('web');
+    setWebSubTab('methodology');
+    addToast({
+      type: 'info',
+      title: 'Discipline Handoff: Web Security',
+      message: `Focused on discovered web service at ${webHost}:${port}. Ready for HTTP reconnaissance.`,
+    });
+  };
+
+  const handleHandoffToADSecurity = (adHost: string) => {
+    setActiveTab('ad');
+    addToast({
+      type: 'info',
+      title: 'Discipline Handoff: Active Directory',
+      message: `Focused on discovered Domain Controller at ${adHost}. Ready for AD audit.`,
+    });
   };
 
   // Connect WebSocket when activeScanId changes
@@ -243,6 +337,7 @@ export const App: React.FC = () => {
             scanService.listByTarget(activeTargetRef.current.id).then(setScans);
             loadAssets(1, assetSearchRef.current, assetFilterRef.current, assetSortRef.current, assetOrderRef.current);
             loadFindings(1, findingSearchRef.current, findingSeverityRef.current);
+            loadNetwork();
           }
           if (msg.status !== 'RUNNING') {
             setRunningScanId(null);
@@ -255,7 +350,7 @@ export const App: React.FC = () => {
               addToast({
                 type: 'success',
                 title: `${toolTitle} Completed`,
-                message: 'Findings saved. Explore updated inventory in Discovered Assets.',
+                message: 'Findings saved. Explore updated inventory across security disciplines.',
               });
 
               // Check if an automated sequence is running
@@ -503,6 +598,8 @@ export const App: React.FC = () => {
     setAssetFilter('all');
     setAssetSort('priority');
     setAssetOrder('desc');
+    setNetworkHosts([]);
+    setNetworkServices([]);
     setActiveScanId(null);
     addToast({
       type: 'info',
@@ -512,11 +609,14 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0d1117] flex flex-col font-sans text-zinc-100">
+    <div className="min-h-screen bg-[#080c14] flex flex-col font-sans text-slate-100 antialiased">
       <Navbar
         targets={targets}
         activeTarget={activeTarget}
         activeTab={activeTab}
+        webCount={assetsData.total}
+        networkCount={networkHosts.length}
+        adCount={networkServices.filter((s) => [88, 389, 445, 636, 3268].includes(s.port)).length}
         findingsCount={findingsData.stats?.total || findingsData.total || 0}
         isRunning={!!runningScanId}
         onSelectTarget={setActiveTarget}
@@ -526,11 +626,21 @@ export const App: React.FC = () => {
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6">
-        {activeTab === 'tools' && (
-          <ToolsView
+        {/* 1. Web Security Discipline */}
+        {activeTab === 'web' && (
+          <WebSecurityView
+            activeSubTab={webSubTab}
+            onSelectSubTab={(sub) => {
+              setWebSubTab(sub);
+              if (sub === 'assets') {
+                loadAssets(1, assetSearch, assetFilter, assetSort, assetOrder);
+              } else if (sub === 'appintel') {
+                loadTraffic(1, trafficSearch, trafficCategory, trafficMethod);
+              }
+            }}
+            activeTarget={activeTarget}
             tools={tools}
             scans={scans}
-            activeTarget={activeTarget}
             currentRunningScanId={runningScanId}
             activeQueue={activeQueue}
             onExecuteTool={handleExecuteTool}
@@ -539,31 +649,70 @@ export const App: React.FC = () => {
             onStopQueue={handleStopQueue}
             onViewLogs={handleViewLogs}
             onStopScan={handleStopScan}
-          />
-        )}
-
-        {activeTab === 'assets' && (
-          <AssetsView
-            activeTarget={activeTarget}
             assetsData={assetsData}
-            currentPage={assetsData.page}
-            searchQuery={assetSearch}
-            activeFilter={assetFilter}
-            sortField={assetSort}
-            sortOrder={assetOrder}
-            onPageChange={(p) => loadAssets(p, assetSearch, assetFilter, assetSort, assetOrder)}
-            onSearchChange={(q) => {
+            assetSearch={assetSearch}
+            assetFilter={assetFilter}
+            assetSort={assetSort}
+            assetOrder={assetOrder}
+            isAssetsLoading={isAssetsLoading}
+            onPageChangeAssets={(p) => loadAssets(p, assetSearch, assetFilter, assetSort, assetOrder)}
+            onSearchChangeAssets={(q) => {
               setAssetSearch(q);
               loadAssets(1, q, assetFilter, assetSort, assetOrder);
             }}
-            onFilterChange={handleAssetFilterChange}
-            onSortChange={handleAssetSortChange}
-            onRefresh={() => loadAssets(assetsData.page, assetSearch, assetFilter, assetSort, assetOrder)}
-            onLaunchScan={handleExecuteTool}
-            isLoading={isAssetsLoading}
+            onFilterChangeAssets={handleAssetFilterChange}
+            onSortChangeAssets={handleAssetSortChange}
+            onRefreshAssets={() => loadAssets(assetsData.page, assetSearch, assetFilter, assetSort, assetOrder)}
+            trafficData={trafficData}
+            trafficStats={trafficStats}
+            trafficSearch={trafficSearch}
+            trafficCategory={trafficCategory}
+            trafficMethod={trafficMethod}
+            isTrafficLoading={isTrafficLoading}
+            onPageChangeTraffic={(p) => loadTraffic(p, trafficSearch, trafficCategory, trafficMethod)}
+            onSearchChangeTraffic={(q) => {
+              setTrafficSearch(q);
+              loadTraffic(1, q, trafficCategory, trafficMethod);
+            }}
+            onCategoryFilterChangeTraffic={(cat) => {
+              setTrafficCategory(cat);
+              loadTraffic(1, trafficSearch, cat, trafficMethod);
+            }}
+            onMethodFilterChangeTraffic={(m) => {
+              setTrafficMethod(m);
+              loadTraffic(1, trafficSearch, trafficCategory, m);
+            }}
+            onRefreshTraffic={() => loadTraffic(trafficData.page, trafficSearch, trafficCategory, trafficMethod)}
+            onAssessmentTriggered={() => loadFindings(1, findingSearch, findingSeverity)}
           />
         )}
 
+        {/* 2. Network Security Discipline */}
+        {activeTab === 'network' && (
+          <NetworkSecurityView
+            activeTarget={activeTarget}
+            hosts={networkHosts}
+            services={networkServices}
+            onRefresh={loadNetwork}
+            onHandoffToWebSecurity={handleHandoffToWebSecurity}
+            onHandoffToADSecurity={handleHandoffToADSecurity}
+            isLoading={isNetworkLoading}
+          />
+        )}
+
+        {/* 3. Active Directory Discipline */}
+        {activeTab === 'ad' && (
+          <ActiveDirectoryView
+            activeTarget={activeTarget}
+            hosts={networkHosts}
+            services={networkServices}
+            onRefresh={loadNetwork}
+            onNavigateToFindings={() => setActiveTab('findings')}
+            isLoading={isNetworkLoading}
+          />
+        )}
+
+        {/* 4. Consolidated Findings & Evidence */}
         {activeTab === 'findings' && (
           <FindingsView
             data={findingsData}
@@ -584,6 +733,7 @@ export const App: React.FC = () => {
           />
         )}
 
+        {/* 5. Live Terminal & Console Stream */}
         {activeTab === 'terminal' && (
           <TerminalView
             scans={scans}

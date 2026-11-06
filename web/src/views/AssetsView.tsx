@@ -43,9 +43,9 @@ export const AssetsView: React.FC<AssetsViewProps> = ({
 
   if (!activeTarget) {
     return (
-      <div className="p-8 text-center bg-[#161b22] rounded-md border border-[#30363d] max-w-lg mx-auto mt-12 font-mono">
-        <h3 className="text-sm font-semibold text-zinc-200">No Target Selected</h3>
-        <p className="text-xs text-zinc-400 mt-1">Please select a target scope to view assets.</p>
+      <div className="p-12 text-center bg-[#0e1420] rounded-xl border border-white/[0.06] max-w-md mx-auto my-12">
+        <h3 className="text-sm font-semibold text-slate-200">No Target Selected</h3>
+        <p className="text-xs text-slate-400 mt-1">Please select a target scope to view assets.</p>
       </div>
     );
   }
@@ -53,15 +53,15 @@ export const AssetsView: React.FC<AssetsViewProps> = ({
   return (
     <div className="space-y-4">
       {/* View Switcher Header */}
-      <div className="flex items-center justify-between font-mono">
-        <div className="flex items-center space-x-1 bg-[#161b22] p-1 rounded-md border border-[#30363d] text-xs">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center p-0.5 bg-white/[0.02] border border-white/[0.05] rounded-xl text-xs">
           <button
             type="button"
             onClick={() => setViewMode('table')}
-            className={`flex items-center space-x-1.5 px-3 py-1 rounded transition ${
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ${
               viewMode === 'table'
-                ? 'bg-[#21262d] text-zinc-100 font-semibold border border-[#30363d]'
-                : 'text-zinc-400 hover:text-zinc-200'
+                ? 'bg-white/[0.08] text-white shadow-sm ring-1 ring-white/10 font-medium'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.03]'
             }`}
           >
             <LayoutList className="w-3.5 h-3.5" />
@@ -71,10 +71,10 @@ export const AssetsView: React.FC<AssetsViewProps> = ({
           <button
             type="button"
             onClick={() => setViewMode('gallery')}
-            className={`flex items-center space-x-1.5 px-3 py-1 rounded transition ${
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ${
               viewMode === 'gallery'
-                ? 'bg-[#21262d] text-zinc-100 font-semibold border border-[#30363d]'
-                : 'text-zinc-400 hover:text-zinc-200'
+                ? 'bg-white/[0.08] text-white shadow-sm ring-1 ring-white/10 font-medium'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.03]'
             }`}
           >
             <LayoutGrid className="w-3.5 h-3.5" />
@@ -84,10 +84,10 @@ export const AssetsView: React.FC<AssetsViewProps> = ({
           <button
             type="button"
             onClick={() => setViewMode('sitemap')}
-            className={`flex items-center space-x-1.5 px-3 py-1 rounded transition ${
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-all ${
               viewMode === 'sitemap'
-                ? 'bg-[#21262d] text-zinc-100 font-semibold border border-[#30363d]'
-                : 'text-zinc-400 hover:text-zinc-200'
+                ? 'bg-white/[0.08] text-white shadow-sm ring-1 ring-white/10 font-medium'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.03]'
             }`}
           >
             <Network className="w-3.5 h-3.5" />
@@ -95,12 +95,11 @@ export const AssetsView: React.FC<AssetsViewProps> = ({
           </button>
         </div>
 
-        <div className="text-xs text-zinc-500 hidden sm:block">
-          Active Scope: <strong className="text-zinc-300">{activeTarget.domain}</strong>
+        <div className="text-xs text-slate-500 font-mono hidden sm:block">
+          Scope: <strong className="text-slate-300 font-medium">{activeTarget.domain}</strong>
         </div>
       </div>
 
-      {/* Render Active View Container */}
       {viewMode === 'table' && (
         <AssetTable
           data={assetsData}

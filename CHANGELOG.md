@@ -10,9 +10,102 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Implemented **Eye-Comfort Dark Mode & Visual De-Cluttering Overhaul**:
+  - Re-engineered the color palette into an eye-comfortable deep dark theme: `#080c14` canvas, `#0e1420` surface containers, soft hairline borders `rgba(255, 255, 255, 0.06)`, and muted text typography (`#f1f5f9` headings, `#94a3b8` body, `#64748b` subtle).
+  - Eliminated button clutter across all primary views:
+    - `ToolsView.tsx`: Reduced 50+ scattered tool and stage buttons into a sleek **Pipeline Command Center** with a single primary run action, integrated stage filter dropdown, and clean, quiet tool rows with subtle status dots (`sky-400` running, `emerald-400` completed, `rose-400` failed, `slate-600` ready).
+    - `NetworkSecurityView.tsx`: Replaced 4 separate profile buttons and massive neon alert cards with a single unified search & scan row with integrated native port profile selection and sleek, contextual surface discovery notices.
+    - `Navbar.tsx`: Replaced high-contrast saturated pill badges with quiet, minimal segmented pill navigation with micro mono counts.
+    - `TrafficView.tsx`: Reorganized multi-button toolbar into clean primary `Auto-Explore Site` and `Run Security Audit` actions with quiet dropdown filters and subdued syntax formatting in `#080c14`.
+    - `Button.tsx`: Modernized all buttons with refined Indigo accents (`#4f46e5`), soft translucent secondary surfaces, and subtle interactive active states.
+    - `Toast.tsx`: Redesigned notification popups with soft dark slate surfaces and clear typography.
+- Implemented **Unified Multi-Discipline UI Architecture & Cross-Discipline Dynamic Handoffs**:
+  - Re-architected primary navigation into five distinct security disciplines: **Web Security**, **Network Security**, **Active Directory**, **Findings & Evidence**, and **Live Terminal**.
+  - Grouped all web reconnaissance, asset inventory, visual screenshots, and traffic intelligence into a unified container (`WebSecurityView.tsx`) with fast sub-navigation (`[ Methodology & Tools | Discovered Assets | App Intel & Traffic Explorer ]`).
+  - Implemented `NetworkSecurityView.tsx`: CIDR subnet and IP range probing, customizable port profiles (Core, Web, AD, Full), live host inventory, protocol fingerprinting, dangerous exposure alerting (unauthenticated Redis, Telnet, FTP, Elasticsearch, MongoDB), and dynamic 1-click discipline handoffs.
+  - Implemented `ActiveDirectoryView.tsx`: Domain Controller detection, LDAP vs LDAPS transport security auditing, Kerberos KDC verification, and SMB signing analysis with direct finding generation.
+  - Implemented seamless Cross-Discipline Handoffs: Web ports discovered during network scanning trigger 1-click handoff to Web Security with adjusted scope; AD ports trigger 1-click handoff to Active Directory auditing.
+  - Updated `Navbar.tsx` and `App.tsx` with live discipline inventory badges and responsive state management.
+- Implemented **Autonomous Application Explorer & Dynamic DOM Crawler (`AutoExplorer`)**:
+  - Implemented `internal/appintel/auto_explorer.go`: Autonomous dual-mode explorer navigating target web applications, clicking interactive DOM elements, submitting forms with benign audit values, and capturing all underlying network flows without requiring manual proxy interaction.
+  - Chromium CDP Integration: Automatically binds headless Chromium to an internal proxy, opens pages, evaluates DOM interaction scripts, executes button/tab clicks, fills inputs, scrolls pages, and intercepts 100% of network traffic into `traffic_records`.
+  - HTTP Spider Fallback: Pure-Go crawler parsing HTML, discovering links and forms, submitting POST/GET requests with `RecordingTransport` for environments without Chromium.
+  - Added REST API endpoints (`POST /api/appintel/target/{id}/auto-explore` and `GET /status`).
+  - Added MCP tool `auto_explore_target` for autonomous AI agent site discovery.
+  - Added "Auto-Explore Site" one-click action and live progress summary banner in `TrafficView.tsx`.
+- Implemented **Interactive Application Intelligence & Traffic Inspection UI (`TrafficView.tsx`)**:
+  - Added dedicated "App Intel" tab to the primary navigation bar (`Navbar.tsx` and `App.tsx`).
+  - Implemented category filtering chips (`auth`, `admin`, `api`, `upload`, `search`, `ugc`, `general`) and HTTP method filtering (`GET`, `POST`, `PUT`, `DELETE`, `PATCH`).
+  - Implemented real-time category statistics counter banner bound to `trafficService.getStats()`.
+  - Built interactive split-pane inspector displaying raw/formatted request headers, syntax-formatted request bodies, response headers, response bodies, extracted parameter graphs, and transaction metadata.
+  - Added 1-click executable `cURL` reproduction command copying with parameter escaping for reproducible testing.
+- Implemented **Phase 2: Traffic Categorization, Parameter Graph & Sensitive Data Protection**:
+  - Implemented `internal/appintel/categorizer.go`: Multi-heuristic classification of dynamic workflows (`auth`, `registration`, `account_recovery`, `upload`, `search`, `ugc`, `admin`, `api`).
+  - Implemented `internal/appintel/parameter_map.go`: Aggregated parameter graph tracking user-controlled parameters across query, JSON, and form bodies with type inference (`uuid`, `integer`, `email`, `token`) and automated IDOR candidate detection.
+  - Implemented `internal/appintel/session.go`: Sensitive data redactor scrubbing passwords, JWTs, Bearer tokens, cookies, API keys, and credit cards for safe UI presentation and logging.
+  - Unit test suite in `internal/appintel/appintel_test.go`.
+- Implemented **Phase 3: Deterministic Security Assessment Engine & Evidence Verification**:
+  - Implemented `internal/assessment/rule.go`: Verification rule interface, confidence scoring (`CONFIRMED`, `HIGH`, `MEDIUM`, `INFORMATIONAL`), and finding mapping.
+  - Implemented `internal/assessment/evidence.go`: RFC 7230 raw request/response serializer and copy-pasteable `curl` reproduction command compiler.
+  - Implemented `internal/assessment/auth_check.go`: Credential query parameter exposure and missing session cookie defensive flags (`HttpOnly`, `Secure`).
+  - Implemented `internal/assessment/idor_check.go`: Controlled numeric identifier substitution and broken object-level authorization verification.
+  - Implemented `internal/assessment/input_check.go`: Context-aware canary reflection and unescaped HTML tag verification.
+  - Implemented `internal/assessment/upload_check.go`: Active script and SVG dangerous file extension acceptance audit.
+  - Implemented `internal/assessment/engine.go`: Multi-rule assessment coordinator with automated finding persistence to SQLite.
+  - Unit test suite in `internal/assessment/assessment_test.go`.
+- Implemented **Phase 4: Hybrid AI Assessment Planner & Model Context Protocol Suite**:
+  - Implemented `internal/ai/client.go`: Multi-provider LLM interface supporting Gemini, OpenAI, Ollama, and deterministic Mock testing.
+  - Implemented `internal/ai/traffic_analyzer.go`: Structured prompt compiler and proposal parser for traffic graphs.
+  - Implemented `internal/ai/planner.go`: Coordinated planner with deterministic validation gates.
+  - Expanded `internal/mcp/server.go`: Added `query_traffic` and `get_parameter_graph` JSON-RPC tools for autonomous agent interaction.
+  - Unit test suites in `internal/ai/ai_test.go` and `internal/mcp/server_test.go`.
+- Implemented **Phase 5 & 6: Network Security Subsystem & Active Directory Mapping**:
+  - Created domain entities `internal/models/host.go` and `internal/models/service.go`.
+  - Added `hosts` and `services` SQLite tables with foreign keys and indexes in `internal/database/schema.go`.
+  - Implemented `internal/database/host_repo.go` and `internal/database/service_repo.go` with automated web service handoff queries.
+  - Implemented `internal/network/discovery.go`: Subnet CIDR expansion and TCP SYN/connect host probing.
+  - Implemented `internal/network/service_probe.go`: Protocol fingerprinting (SSH, HTTP, Redis) and automated handoff to web recon (`HandoffWebServices`).
+  - Implemented `internal/network/ad_mapper.go`: Non-destructive Active Directory Domain Controller detection and unencrypted LDAP auditing.
+  - Implemented `internal/network/misconfig.go`: Network exposure auditing for unauthenticated Redis, Telnet, FTP, Elasticsearch, and MongoDB.
+  - Unit test suites in `internal/database/network_repo_test.go` and `internal/network/network_test.go`.
+- Implemented **Phase 7: Codebase Cleanup & Tool Retirement**:
+  - Removed deprecated `internal/tools/nuclei.go` and `internal/tools/nomore403.go` source files.
+  - Cleaned tool registrations in `cmd/bhf-server/main.go` and `internal/tools/tools_test.go`.
+  - Cleaned `docker/Dockerfile` by removing Nuclei/nomore403 binaries and payload cloning stages.
+  - Updated `web/src/views/ToolsView.tsx`, `RunConfigModal.tsx`, and `VisualGallery.tsx` removing Nuclei/403 bypass references and rebuilding production frontend bundles.
+- Implemented **Phase 1: Interactive Application Intelligence & Traffic Interception Foundation**:
+  - Created `internal/models/traffic.go` defining the `TrafficRecord` domain entity for full request/response transactions.
+  - Added canonical `traffic_records` SQLite table, compound indexes, and cascading foreign key constraints in `internal/database/schema.go`.
+  - Implemented `internal/database/traffic_repo.go` supporting paginated queries, category/method filtering, search, and category metrics with complete unit tests in `traffic_repo_test.go`.
+  - Implemented `internal/appintel/interceptor.go` providing `RecordingTransport` (`http.RoundTripper`) and standalone `ProxyServer` with automatic in-scope enforcement (`tools.IsInScope`), header/body capture, and initial category inference.
+  - Implemented `internal/appintel/browser.go` managing isolated headless Chromium sessions with process group isolation (`Setpgid`), temp profile directories, and graceful cancellation.
+  - Implemented `internal/api/traffic_handler.go` and registered REST endpoints (`GET /api/traffic/target/{targetID}`, `/stats`, `/{id}`) in `internal/api/router.go` and `cmd/bhf-server/main.go`.
+  - Added TypeScript interfaces in `web/src/types/traffic.ts` and network client in `web/src/services/trafficService.ts`.
+- Added architecture and engineering specifications for **Interactive Application Intelligence** (`internal/appintel/`), introducing isolated browser session exploration via CDP, full HTTP transaction interception, traffic categorization (authentication, registration, reset, search, upload, admin, API), and parameter graph mapping.
+- Added architecture and engineering specifications for the **Deterministic Security Assessment Engine** (`internal/assessment/`), shifting BHF from speculative scanner alert output to verified, reproducible security testing with explicit confidence levels, raw request/response proof, and executable `curl` reproductions.
+- Added architecture and engineering specifications for the **Hybrid AI Assessment Orchestrator** (`internal/ai/`), coupling multi-provider AI agents for application comprehension, traffic analysis, and test planning with deterministic validation gates.
+- Added architecture and engineering specifications for the **Network Security Subsystem** (`internal/network/`), detailing subnet discovery, host identification, service fingerprinting, Active Directory/identity assessment, and unified asset/finding models.
+- Added architectural documentation for the `endpoints` table, `endpoint_repo.go`, and `endpoint_handler.go`, synchronizing documentation with the existing route separation implementation.
 - Added "Skip Tool" feature allowing operators to skip any active tool during an automated sequence (full pipeline or stage sequence) from both the Tools and Terminal views without aborting the rest of the pipeline.
 - Integrated native visual screenshot capture into `httpx` (`-screenshot`, `-system-chrome`, `-srd`, `-esb`, `-ehb`), parsing output paths and binding screenshots directly to asset inventory.
 - Enhanced `VisualGallery.tsx` with default "Screenshots only" display, canonical host deduplication (collapsing 301/302 redirects into destination asset), and 4xx/5xx error suppression.
+
+### Changed
+- Realigned platform architecture from a simple external reconnaissance tool runner into a unified, evidence-driven security assessment and penetration testing platform.
+- Replaced legacy tool runner pipeline with the 8-stage Progressive Security Assessment Methodology across Reconnaissance, Application Intelligence, Deterministic Assessment, and Network Security.
+- Updated `ARCHITECTURE.md`, `RULES.md`, `TESTING.md`, `WORKFLOW.md`, `personal.md`, and `README.md` to reflect the core philosophy: *Reliability over quantity. Evidence over assumptions. Verification over speculation.*
+- Standardized UI to developer-grade GitHub Dark theme (`#0d1117`) with zero AI glowing neon hues and zero emojis.
+- Enforced strict Single Responsibility Principle across all Go backend and TypeScript frontend files.
+- Enhanced `.gitignore` with comprehensive patterns for Python bytecode, virtual environments, logs, and build artifacts.
+- Removed all emojis from project documentation and user interface components.
+- Added view mode toggle `[ Table View | Visual Gallery | Sitemap Tree ]` to `AssetsView.tsx`.
+- Retired `BUG-002` (Nuclei scan duration) and closed `BUG-006` (Nuclei missing templates) following tool deprecation.
+
+### Removed
+- Deprecated and removed `nuclei` template scanner from system architecture, methodology pipeline, and active bug tracking in favor of native, deterministic verification modules.
+- Deprecated and removed `nomore403` blind header/path tampering from system architecture and roadmap (`FEAT-006`), replacing it with deterministic authorization and access control boundary checks.
+- Purged all legacy external framework references across all project documentation and engineering rules.
+- Deprecated and removed `alterx` (subdomain permutations) and `asnmap` (network range/ASN mapping) tools from the framework backend, tool registry, Docker container build, pipeline stages, and test suites per operator request (`BUG-007`).
 
 ### Fixed
 - Fixed screenshot loading failures in BHF Visual Gallery and Discovered Assets table by:

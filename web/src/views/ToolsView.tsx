@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Play, Square, SkipForward } from 'lucide-react';
+import { Play, Square, SkipForward, Layers } from 'lucide-react';
 import { ToolInfo } from '../types/tool';
 import { Scan } from '../types/scan';
 import { Target } from '../types/target';
@@ -28,6 +28,7 @@ interface ToolsViewProps {
 }
 
 interface MethodologyStage {
+  id: string;
   title: string;
   description: string;
   toolNames: string[];
@@ -35,34 +36,40 @@ interface MethodologyStage {
 
 const METHODOLOGY_STAGES: MethodologyStage[] = [
   {
+    id: 's1',
     title: 'Subdomain & OSINT Enumeration',
     description: 'Map external perimeter, discover subdomains, and actively resolve DNS records.',
     toolNames: ['subfinder', 'assetfinder', 'theharvester', 'dnsx'],
   },
   {
+    id: 's2',
     title: 'Port & Network Scanning',
     description: 'Uncover non-standard open ports and exposed services on live resolving hosts.',
     toolNames: ['naabu'],
   },
   {
+    id: 's3',
     title: 'Live HTTP/S Probing & Fingerprinting',
     description: 'Probe web ports, detect tech stack, extract TLS SANs, and capture screenshots.',
     toolNames: ['httpx', 'tlsx', 'wafw00f'],
   },
   {
+    id: 's4',
     title: 'Crawling & Endpoint Discovery',
     description: 'Spider dynamic routes, extract archive URLs, and mine JavaScript bundles.',
     toolNames: ['katana', 'gau', 'uro', 'jsluice'],
   },
   {
+    id: 's5',
     title: 'Content Discovery & Fuzzing',
-    description: 'Brute-force hidden paths, discover query parameters, and test 401/403 bypasses.',
-    toolNames: ['ffuf', 'arjun', 'nomore403'],
+    description: 'Brute-force hidden paths and discover user-controlled query parameters.',
+    toolNames: ['ffuf', 'arjun'],
   },
   {
-    title: 'Vulnerability Assessment & Verification',
-    description: 'High-signal vulnerability testing with verified, executable cURL reproductions.',
-    toolNames: ['subzy', 'corsy', 's3scanner', 'nuclei'],
+    id: 's6',
+    title: 'Specialized Vulnerability Assessment',
+    description: 'Audits for subdomain takeovers, CORS origin reflection, and cloud bucket exposures.',
+    toolNames: ['subzy', 'corsy', 's3scanner'],
   },
 ];
 
@@ -81,6 +88,7 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
 }) => {
   const [selectedToolForConfig, setSelectedToolForConfig] = useState<ToolInfo | null>(null);
   const [enrichAfterCrawl, setEnrichAfterCrawl] = useState(true);
+  const [stageFilter, setStageFilter] = useState<string>('all');
 
   const getLatestScanForTool = (toolName: string): Scan | undefined => {
     return scans.find((s) => s.tool_name === toolName);
@@ -92,190 +100,199 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
     const s3 = ['httpx', 'tlsx', 'wafw00f'];
     const s4 = ['katana', 'gau', 'uro', 'jsluice'];
     const reProbe = enrichAfterCrawl ? ['httpx'] : [];
-    const s5 = ['ffuf', 'arjun', 'nomore403'];
-    const s6 = ['subzy', 'corsy', 's3scanner', 'nuclei'];
+    const s5 = ['ffuf', 'arjun'];
+    const s6 = ['subzy', 'corsy', 's3scanner'];
 
     const raw = [...s1, ...s2, ...s3, ...s4, ...reProbe, ...s5, ...s6];
     return raw.filter((name) => tools.some((t) => t.name === name));
   }, [tools, enrichAfterCrawl]);
-
-  const isFullPipelineRunning = activeQueue?.title === 'Full Recon Pipeline';
 
   const handleRunFullPipeline = () => {
     if (fullPipelineTools.length === 0) return;
     onExecuteQueue(fullPipelineTools, 'Full Recon Pipeline');
   };
 
+  const visibleStages = useMemo(() => {
+    if (stageFilter === 'all') return METHODOLOGY_STAGES;
+    return METHODOLOGY_STAGES.filter((s) => s.id === stageFilter);
+  }, [stageFilter]);
+
   if (!activeTarget) {
     return (
-      <div className="p-8 text-center bg-[#161b22] rounded-md border border-[#30363d] max-w-lg mx-auto mt-12">
-        <h3 className="text-sm font-semibold text-zinc-200">No Target Selected</h3>
-        <p className="text-xs text-zinc-400 mt-1">Please select or add a target domain in the top bar to begin.</p>
+      <div className="p-12 text-center bg-[#0e1420] rounded-xl border border-white/[0.06] max-w-md mx-auto my-12">
+        <Layers className="w-8 h-8 text-slate-500 mx-auto mb-3" />
+        <h3 className="text-sm font-medium text-slate-200">No Target Scope Selected</h3>
+        <p className="text-xs text-slate-400 mt-1">Please select or register a target domain above to begin assessment.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 pb-12">
-      {/* Sleek Minimal Pipeline Action Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-3.5 py-2.5 bg-[#161b22] border border-[#30363d] rounded-md font-mono text-xs">
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center space-x-2 text-zinc-400">
-            <span className="text-zinc-200 font-bold uppercase tracking-wider text-[11px]">Pipeline</span>
-            <span className="text-zinc-600">/</span>
-            <span>6 Stages</span>
-            <span className="text-zinc-600">&bull;</span>
-            <span className="text-zinc-300">{fullPipelineTools.length} Tools</span>
+    <div className="space-y-5 pb-12">
+      {/* Sleek, Eye-Comfortable Pipeline Command Bar */}
+      <div className="bg-[#0e1420] border border-white/[0.06] rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* Left: Pipeline Scope & Stage Filter */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center space-x-2 text-xs">
+            <span className="font-semibold text-slate-200">Recon Pipeline</span>
+            <span className="text-slate-600">•</span>
+            <span className="text-slate-400 font-mono text-[11px]">{fullPipelineTools.length} Tools</span>
           </div>
 
-          <span className="text-zinc-700">|</span>
+          <div className="hidden sm:block h-4 w-px bg-white/[0.08]" />
 
-          <label className="flex items-center space-x-1.5 cursor-pointer text-zinc-400 hover:text-zinc-200 select-none text-[11px]">
+          {/* Discreet Stage Selector */}
+          <div className="flex items-center space-x-1.5 text-xs text-slate-400">
+            <span>Filter:</span>
+            <select
+              value={stageFilter}
+              onChange={(e) => setStageFilter(e.target.value)}
+              className="bg-white/[0.04] border border-white/[0.08] rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
+            >
+              <option value="all" className="bg-[#0e1420] text-slate-200">All 6 Stages (Complete Pipeline)</option>
+              {METHODOLOGY_STAGES.map((st) => (
+                <option key={st.id} value={st.id} className="bg-[#0e1420] text-slate-200">
+                  {st.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="hidden sm:block h-4 w-px bg-white/[0.08]" />
+
+          <label className="flex items-center space-x-2 text-xs text-slate-400 hover:text-slate-300 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={enrichAfterCrawl}
               onChange={(e) => setEnrichAfterCrawl(e.target.checked)}
-              className="rounded bg-[#0d1117] border-[#30363d] text-emerald-500 focus:ring-0 focus:ring-offset-0 cursor-pointer h-3.5 w-3.5"
-            />
-            <span>Auto-enrich with httpx</span>
+              className="rounded bg-white/[0.04] border-white/[0.1] text-indigo-500 focus:ring-0 focus:ring-offset-0 cursor-pointer h-3.5 w-3.5"
+            >
+            </input>
+            <span className="text-[11px]">Auto-enrich with httpx</span>
           </label>
         </div>
 
+        {/* Right: Pipeline Controls */}
         <div className="flex items-center space-x-2">
-          {isFullPipelineRunning ? (
+          {activeQueue ? (
             <div className="flex items-center space-x-2">
-              <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded text-[11px] font-mono bg-blue-500/10 text-blue-400 border border-blue-500/30">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+              <div className="flex items-center space-x-2 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 rounded-lg text-xs font-mono text-indigo-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
                 <span>
-                  {activeQueue!.currentIndex + 1}/{activeQueue!.tools.length}: <strong className="text-white">{activeQueue!.tools[activeQueue!.currentIndex]}</strong>
+                  {activeQueue.currentIndex + 1}/{activeQueue.tools.length}: <strong className="text-white">{activeQueue.tools[activeQueue.currentIndex]}</strong>
                 </span>
-              </span>
+              </div>
+
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={onSkipTool}
-                className="!py-0.5 !px-2.5 text-xs font-mono text-zinc-300 hover:text-white border-[#30363d]"
-                title={`Skip ${activeQueue!.tools[activeQueue!.currentIndex]} and proceed to next tool in pipeline`}
+                className="text-xs font-mono"
+                title={`Skip ${activeQueue.tools[activeQueue.currentIndex]} and advance`}
               >
                 <SkipForward className="w-3 h-3 mr-1 text-amber-400" />
-                Skip Tool
+                <span>Skip</span>
               </Button>
+
               <Button
                 variant="danger"
                 size="sm"
                 onClick={onStopQueue}
-                className="!py-0.5 !px-2.5 text-xs font-mono"
+                className="text-xs font-mono"
               >
                 <Square className="w-3 h-3 mr-1 fill-current" />
-                Stop Pipeline
+                <span>Stop</span>
               </Button>
             </div>
           ) : (
             <Button
               variant="primary"
               size="sm"
-              disabled={!!currentRunningScanId || !!activeQueue}
+              disabled={!!currentRunningScanId}
               onClick={handleRunFullPipeline}
-              className="!py-1 !px-3 text-xs font-mono font-medium shadow-sm"
+              className="text-xs font-medium"
             >
-              <Play className="w-3 h-3 mr-1.5 fill-current text-white" />
-              Run Full Pipeline
+              <Play className="w-3 h-3 mr-1.5 fill-current" />
+              <span>Run Full Recon Sequence</span>
             </Button>
           )}
         </div>
       </div>
 
-      {METHODOLOGY_STAGES.map((stage) => {
-        // Deterministic ordering: iterate over stage.toolNames so tools display in exact progressive order
-        const stageTools = stage.toolNames
-          .map((name) => tools.find((t) => t.name === name))
-          .filter((t): t is ToolInfo => !!t);
+      {/* Methodology Stages */}
+      <div className="space-y-4">
+        {visibleStages.map((stage) => {
+          const stageTools = stage.toolNames
+            .map((name) => tools.find((t) => t.name === name))
+            .filter((t): t is ToolInfo => !!t);
 
-        if (stageTools.length === 0) return null;
+          if (stageTools.length === 0) return null;
 
-        const isStageRunning = activeQueue?.title === stage.title;
+          const isStageRunning = activeQueue?.title === stage.title;
 
-        return (
-          <section key={stage.title} className="space-y-2.5">
-            <div className="flex items-center justify-between pl-1 pr-1">
-              <div className="flex items-center space-x-2">
-                <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-zinc-300">
-                  {stage.title}
-                </h3>
-                <span className="text-[11px] font-mono text-zinc-500">
-                  ({stageTools.length} {stageTools.length === 1 ? 'tool' : 'tools'})
-                </span>
+          return (
+            <div
+              key={stage.id}
+              className="bg-[#0e1420] border border-white/[0.06] rounded-xl p-4 space-y-3"
+            >
+              {/* Stage Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/[0.04] pb-2.5">
+                <div>
+                  <h3 className="text-xs font-semibold text-slate-200">
+                    {stage.title}
+                  </h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    {stage.description}
+                  </p>
+                </div>
+
+                <div className="flex items-center space-x-2 shrink-0">
+                  {isStageRunning ? (
+                    <div className="flex items-center space-x-1.5 text-xs text-indigo-400 font-mono">
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                      <span>Stage running...</span>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      disabled={!!currentRunningScanId || !!activeQueue}
+                      onClick={() => onExecuteQueue(stageTools.map((t) => t.name), stage.title)}
+                      className="text-slate-400 hover:text-slate-200 text-xs font-mono"
+                      title={`Run only the ${stageTools.length} tools in this stage`}
+                    >
+                      <Play className="w-2.5 h-2.5 mr-1 fill-current" />
+                      <span>Run Stage ({stageTools.length})</span>
+                    </Button>
+                  )}
+                </div>
               </div>
 
-              <div className="flex items-center space-x-2">
-                {isStageRunning ? (
-                  <div className="flex items-center space-x-2">
-                    <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded text-[11px] font-mono bg-blue-500/10 text-blue-400 border border-blue-500/30">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-                      <span>
-                        Stage Running ({activeQueue!.currentIndex + 1}/{activeQueue!.tools.length}):{' '}
-                        <strong className="text-white">{activeQueue!.tools[activeQueue!.currentIndex]}</strong>
-                      </span>
-                    </span>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={onSkipTool}
-                      className="!py-0.5 !px-2 text-xs font-mono text-zinc-300 hover:text-white border-[#30363d]"
-                      title={`Skip ${activeQueue!.tools[activeQueue!.currentIndex]} and proceed to next tool`}
-                    >
-                      <SkipForward className="w-3 h-3 mr-1 text-amber-400" />
-                      Skip Tool
-                    </Button>
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      onClick={onStopQueue}
-                      className="!py-0.5 !px-2 text-xs font-mono"
-                    >
-                      <Square className="w-3 h-3 mr-1 fill-current" />
-                      Stop Stage
-                    </Button>
-                  </div>
-                ) : (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    disabled={!!currentRunningScanId || !!activeQueue}
-                    onClick={() => onExecuteQueue(stageTools.map((t) => t.name), stage.title)}
-                    className="!py-0.5 !px-2.5 text-xs font-mono text-zinc-300 hover:text-white"
-                    title={`Execute all ${stageTools.length} tools in ${stage.title} sequentially in order`}
-                  >
-                    <Play className="w-3 h-3 mr-1 fill-current text-emerald-400" />
-                    Run Stage
-                  </Button>
-                )}
+              {/* Clean Tool Rows */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {stageTools.map((tool, idx) => {
+                  const latestScan = getLatestScanForTool(tool.name);
+                  const isRunning = currentRunningScanId === latestScan?.id && latestScan?.status === 'RUNNING';
+
+                  return (
+                    <ToolCard
+                      key={tool.name}
+                      tool={tool}
+                      latestScan={latestScan}
+                      isRunning={isRunning}
+                      stepNumber={idx + 1}
+                      onRunClick={(toolName) => onExecuteTool(toolName, [])}
+                      onConfigClick={(t) => setSelectedToolForConfig(t)}
+                      onViewLogs={(scanId) => onViewLogs(scanId)}
+                      onStop={(scanId) => onStopScan(scanId)}
+                    />
+                  );
+                })}
               </div>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-              {stageTools.map((tool, idx) => {
-                const latestScan = getLatestScanForTool(tool.name);
-                const isRunning = currentRunningScanId === latestScan?.id && latestScan?.status === 'RUNNING';
-
-                return (
-                  <ToolCard
-                    key={tool.name}
-                    tool={tool}
-                    latestScan={latestScan}
-                    isRunning={isRunning}
-                    stepNumber={idx + 1}
-                    onRunClick={(toolName) => onExecuteTool(toolName, [])}
-                    onConfigClick={(t) => setSelectedToolForConfig(t)}
-                    onViewLogs={(scanId) => onViewLogs(scanId)}
-                    onStop={(scanId) => onStopScan(scanId)}
-                  />
-                );
-              })}
-            </div>
-          </section>
-        );
-      })}
+          );
+        })}
+      </div>
 
       <RunConfigModal
         isOpen={!!selectedToolForConfig}

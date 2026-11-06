@@ -78,15 +78,15 @@ export const Terminal: React.FC<TerminalProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#010409] rounded-md border border-[#30363d] overflow-hidden">
+    <div className="flex flex-col h-full bg-[#05080e] rounded-xl border border-white/[0.06] overflow-hidden">
       {/* Title Bar */}
-      <div className="flex items-center justify-between px-3 py-2 bg-[#161b22] border-b border-[#30363d] text-xs">
-        <div className="flex items-center space-x-2 text-zinc-300 font-mono">
-          <TerminalIcon className="w-3.5 h-3.5 text-zinc-400" />
-          <span className="font-semibold text-zinc-200">{title}</span>
+      <div className="flex items-center justify-between px-3.5 py-2.5 bg-[#0e1420] border-b border-white/[0.05] text-xs">
+        <div className="flex items-center space-x-2 text-slate-300 font-mono">
+          <TerminalIcon className="w-3.5 h-3.5 text-slate-400" />
+          <span className="font-semibold text-slate-200">{title}</span>
           {isRunning && (
-            <span className="inline-flex items-center text-blue-400 text-[10px] space-x-1 ml-2 font-mono">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+            <span className="inline-flex items-center text-sky-400 text-[10px] space-x-1 ml-2 font-mono">
+              <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
               <span>RUNNING</span>
             </span>
           )}
@@ -95,24 +95,24 @@ export const Terminal: React.FC<TerminalProps> = ({
         {/* Controls */}
         <div className="flex items-center space-x-2">
           {filter && (
-            <span className="text-[10px] text-zinc-500 font-mono hidden sm:inline">
+            <span className="text-[10px] text-slate-500 font-mono hidden sm:inline">
               {filteredLogs.length} matches
             </span>
           )}
 
           <input
             type="text"
-            placeholder="Search / filter logs..."
+            placeholder="Search console..."
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="bg-[#0d1117] border border-[#30363d] rounded px-2 py-0.5 text-zinc-200 text-xs focus:outline-none focus:border-zinc-500 w-44 font-mono"
+            className="bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1 text-slate-200 text-xs focus:outline-none focus:border-indigo-500 w-40 font-mono placeholder-slate-500"
           />
 
           <button
             onClick={() => setAutoScroll(!autoScroll)}
-            title={autoScroll ? 'Autoscroll enabled' : 'Autoscroll paused'}
-            className={`p-1 rounded hover:bg-[#21262d] transition ${
-              autoScroll ? 'text-blue-400' : 'text-zinc-500'
+            title={autoScroll ? 'Autoscroll active' : 'Autoscroll paused'}
+            className={`p-1.5 rounded-lg hover:bg-white/[0.04] transition ${
+              autoScroll ? 'text-indigo-400' : 'text-slate-500'
             }`}
           >
             <ArrowDownCircle className="w-3.5 h-3.5" />
@@ -121,7 +121,7 @@ export const Terminal: React.FC<TerminalProps> = ({
           <button
             onClick={handleCopy}
             title="Copy logs"
-            className="p-1 rounded text-zinc-400 hover:text-zinc-200 hover:bg-[#21262d] transition"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.04] transition"
           >
             {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
           </button>
@@ -130,7 +130,7 @@ export const Terminal: React.FC<TerminalProps> = ({
             <button
               onClick={onClear}
               title="Clear terminal"
-              className="p-1 rounded text-zinc-400 hover:text-zinc-200 hover:bg-[#21262d] transition"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.04] transition"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
@@ -139,62 +139,54 @@ export const Terminal: React.FC<TerminalProps> = ({
           {isRunning && onSkip && (
             <Button
               variant="secondary"
-              size="sm"
+              size="xs"
               onClick={onSkip}
-              className="!py-0.5 !px-2 text-xs font-mono text-zinc-300 hover:text-white border-[#30363d]"
+              className="font-mono text-slate-300 hover:text-white"
               title="Skip current tool and advance pipeline"
             >
               <SkipForward className="w-3 h-3 mr-1 text-amber-400" />
-              Skip
+              <span>Skip</span>
             </Button>
           )}
 
           {isRunning && onStop && (
-            <Button variant="danger" size="sm" onClick={onStop} className="!py-0.5 !px-2 text-xs">
+            <Button variant="danger" size="xs" onClick={onStop}>
               <Square className="w-3 h-3 mr-1 fill-current" />
-              Stop
+              <span>Stop</span>
             </Button>
           )}
         </div>
       </div>
 
-      {/* Terminal Lines Container */}
+      {/* Terminal Body */}
       <div
         ref={terminalBodyRef}
-        className="flex-1 p-3 font-mono text-[11px] leading-relaxed overflow-y-auto space-y-0.5"
+        className="flex-1 p-3 overflow-y-auto font-mono text-xs leading-relaxed select-text space-y-0.5 text-slate-300"
       >
         {filteredLogs.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-zinc-600 font-mono text-xs select-none">
-            {filter ? `No log lines matching "${filter}"` : 'No execution output to display.'}
+          <div className="text-slate-600 italic select-none py-4 text-center">
+            {filter ? 'No log lines matching query.' : 'Awaiting command execution output...'}
           </div>
         ) : (
-          filteredLogs.map((log, index) => (
-            <div key={index} className="flex space-x-2.5 hover:bg-white/[0.03] px-1 py-0.5 rounded">
-              <span className="text-zinc-600 select-none w-10 text-right shrink-0">{index + 1}</span>
-              <span
-                className={`w-12 shrink-0 uppercase text-[9px] px-1 py-0.2 rounded text-center select-none font-bold ${
-                  log.stream === 'stderr'
-                    ? 'text-red-400 bg-red-950/60'
-                    : log.stream === 'system'
-                    ? 'text-amber-400 bg-amber-950/60'
-                    : 'text-zinc-400 bg-zinc-800/60'
-                }`}
-              >
-                {log.stream}
-              </span>
-              <span
-                className={`break-all ${
-                  log.stream === 'stderr'
-                    ? 'text-red-300'
-                    : log.stream === 'system'
-                    ? 'text-amber-300'
-                    : 'text-zinc-200'
-                }`}
-              >
-                {renderHighlightedLine(log.line, filter)}
-              </span>
-            </div>
-          ))
+          filteredLogs.map((log, idx) => {
+            const isStderr = log.stream === 'stderr';
+            const isSystem = log.stream === 'system';
+
+            let lineClass = 'text-slate-300';
+            if (isStderr) lineClass = 'text-rose-400';
+            if (isSystem) lineClass = 'text-sky-400 font-semibold';
+
+            return (
+              <div key={idx} className="flex items-start space-x-2 hover:bg-white/[0.02] px-1 rounded">
+                <span className="text-[10px] text-slate-600 select-none shrink-0 w-16 pt-0.5">
+                  {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </span>
+                <span className={`break-all whitespace-pre-wrap flex-1 ${lineClass}`}>
+                  {renderHighlightedLine(log.line, filter)}
+                </span>
+              </div>
+            );
+          })
         )}
       </div>
     </div>
