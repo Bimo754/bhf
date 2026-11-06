@@ -71,9 +71,18 @@ func TestHandoffWebServices(t *testing.T) {
 	_ = database.MigrateSchema(db)
 
 	targetRepo := database.NewTargetRepo(db)
+	hostRepo := database.NewHostRepo(db)
 	scanRepo := database.NewScanRepo(db)
 	assetRepo := database.NewAssetRepo(db)
 	target, _ := targetRepo.Create("Web Handoff Target", "10.0.0.5", "")
+
+	hostModel := &models.Host{
+		ID:       "host-uuid-12345",
+		TargetID: target.ID,
+		IP:       "10.0.0.5",
+		Status:   "up",
+	}
+	_ = hostRepo.Upsert(hostModel)
 
 	_ = scanRepo.Create(&models.Scan{
 		ID:        "scan-handoff-1",
@@ -87,14 +96,14 @@ func TestHandoffWebServices(t *testing.T) {
 	services := []models.NetworkService{
 		{
 			ID:       "svc-ssh",
-			HostID:   "10.0.0.5",
+			HostID:   hostModel.ID, // UUID
 			TargetID: target.ID,
 			Port:     22,
 			Name:     "ssh",
 		},
 		{
 			ID:       "svc-http",
-			HostID:   "10.0.0.5",
+			HostID:   hostModel.ID, // UUID
 			TargetID: target.ID,
 			Port:     8080,
 			Name:     "http",
@@ -102,7 +111,7 @@ func TestHandoffWebServices(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	err = network.HandoffWebServices(ctx, services, assetRepo, "scan-handoff-1")
+	err = network.HandoffWebServices(ctx, services, hostRepo, assetRepo, "scan-handoff-1")
 	if err != nil {
 		t.Fatalf("HandoffWebServices failed: %v", err)
 	}

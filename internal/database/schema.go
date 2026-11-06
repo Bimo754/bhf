@@ -173,5 +173,30 @@ func MigrateSchema(db *sql.DB) error {
 	// Ensure priority_score column exists for existing database instances
 	_, _ = db.Exec(`ALTER TABLE assets ADD COLUMN priority_score INTEGER DEFAULT 0;`)
 
+	// Data migration: Repair any assets where host was mistakenly set to an internal host UUID
+	_, _ = db.Exec(`
+		DELETE FROM assets 
+		WHERE LENGTH(host) = 36 AND host LIKE '%-%-%-%-%'
+		  AND EXISTS (
+		      SELECT 1 FROM hosts h 
+		      JOIN assets existing ON existing.target_id = assets.target_id 
+		                          AND existing.port = assets.port 
+		                          AND existing.host = COALESCE(NULLIF(h.hostname, ''), h.ip)
+		      WHERE h.id = assets.host
+		  );
+	`)
+
+	_, _ = db.Exec(`
+		UPDATE assets
+		SET 
+			ip = (SELECT hosts.ip FROM hosts WHERE hosts.id = assets.host),
+			url = REPLACE(assets.url, assets.host, (SELECT COALESCE(NULLIF(hosts.hostname, ''), hosts.ip) FROM hosts WHERE hosts.id = assets.host)),
+			host = (SELECT COALESCE(NULLIF(hosts.hostname, ''), hosts.ip) FROM hosts WHERE hosts.id = assets.host)
+		WHERE LENGTH(assets.host) = 36 AND assets.host LIKE '%-%-%-%-%'
+		  AND EXISTS (SELECT 1 FROM hosts WHERE hosts.id = assets.host);
+	`)
+
+	_, _ = db.Exec(`DELETE FROM assets WHERE LENGTH(host) = 36 AND host LIKE '%-%-%-%-%';`)
+
 	return nil
 }

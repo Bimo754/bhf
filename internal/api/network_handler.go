@@ -164,7 +164,7 @@ func (h *NetworkHandler) ScanSubnet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Automatic Web Reconnaissance Handoff
-	_ = network.HandoffWebServices(ctx, discoveredServices, h.assetRepo, scan.ID)
+	_ = network.HandoffWebServices(ctx, discoveredServices, h.hostRepo, h.assetRepo, scan.ID)
 	completedAt := time.Now()
 	_ = h.scanRepo.UpdateStatus(scan.ID, models.StatusCompleted, &completedAt, "")
 

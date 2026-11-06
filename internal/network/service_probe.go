@@ -93,7 +93,7 @@ func ProbeService(ctx context.Context, hostID, targetID, ip string, port int, ti
 }
 
 // HandoffWebServices bridges network discovery to Layer B web assessment by creating Asset entities.
-func HandoffWebServices(ctx context.Context, services []models.NetworkService, assetRepo *database.AssetRepo, scanID string) error {
+func HandoffWebServices(ctx context.Context, services []models.NetworkService, hostRepo *database.HostRepo, assetRepo *database.AssetRepo, scanID string) error {
 	if assetRepo == nil {
 		return nil
 	}
@@ -112,7 +112,36 @@ func HandoffWebServices(ctx context.Context, services []models.NetworkService, a
 			scheme = "https"
 		}
 
-		hostHeader := svc.HostID // HostID contains IP or host address
+		var hostHeader string
+		var ipAddr string
+
+		// 1. Resolve host from hostRepo using svc.HostID
+		if hostRepo != nil {
+			if h, err := hostRepo.GetByID(svc.HostID); err == nil && h != nil {
+				if h.Hostname != "" {
+					hostHeader = h.Hostname
+				} else if h.IP != "" {
+					hostHeader = h.IP
+				}
+				ipAddr = h.IP
+			}
+		}
+
+		// 2. Fallback: If svc.HostID is already an IP address or domain name (and NOT a UUID)
+		if hostHeader == "" {
+			if _, err := uuid.Parse(svc.HostID); err != nil {
+				hostHeader = svc.HostID
+				if net.ParseIP(svc.HostID) != nil {
+					ipAddr = svc.HostID
+				}
+			}
+		}
+
+		// Never insert a raw internal database UUID as an asset host or URL
+		if hostHeader == "" {
+			continue
+		}
+
 		url := fmt.Sprintf("%s://%s:%d", scheme, hostHeader, svc.Port)
 		if (scheme == "http" && svc.Port == 80) || (scheme == "https" && svc.Port == 443) {
 			url = fmt.Sprintf("%s://%s", scheme, hostHeader)
@@ -123,6 +152,7 @@ func HandoffWebServices(ctx context.Context, services []models.NetworkService, a
 			TargetID:      svc.TargetID,
 			ScanID:        scanID,
 			Host:          hostHeader,
+			IP:            ipAddr,
 			URL:           url,
 			Port:          svc.Port,
 			PriorityScore: 20, // Baseline for network discovered web services
